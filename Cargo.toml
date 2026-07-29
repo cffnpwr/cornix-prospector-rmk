@@ -1,0 +1,117 @@
+[package]
+name = "cornix-rmk"
+version = "0.0.0"
+edition = "2024"
+
+[[bin]]
+name = "central"
+path = "src/central.rs"
+
+[[bin]]
+name = "peripheral"
+path = "src/peripheral.rs"
+
+[dependencies]
+bt-hci = { version = "0.6", default-features = false, features = ["defmt"] }
+nrf-mpsl = {
+  git = "https://github.com/alexmoon/nrf-sdc",
+  rev = "11d5c3c",
+  features = [
+    "critical-section-impl",
+    "defmt",
+    "nrf52840",
+  ]
+}
+nrf-sdc = {
+  git = "https://github.com/alexmoon/nrf-sdc",
+  rev = "11d5c3c",
+  features = [
+    "central",
+    "defmt",
+    "nrf52840",
+    "peripheral",
+  ]
+}
+rmk = {
+  version = "0.8",
+  features = [
+    "adafruit_bl",
+    "async_matrix",
+    "nrf52840_ble",
+    "split",
+  ]
+}
+
+cortex-m = "0.7.7"
+cortex-m-rt = "0.7.5"
+defmt = "1.0"
+defmt-rtt = "1.0"
+embassy-executor = {
+  version = "0.9",
+  features = [
+    "arch-cortex-m",
+    "defmt",
+    "executor-thread",
+  ]
+}
+embassy-nrf = {
+  version = "0.8",
+  features = [
+    "defmt",
+    "gpiote",
+    "nfc-pins-as-gpio",
+    "nrf52840",
+    "time",
+    "time-driver-rtc1",
+    "unstable-pac",
+  ]
+}
+embassy-time = {
+  version = "0.5",
+  features = [
+    "defmt",
+    "defmt-timestamp-uptime",
+    "tick-hz-32_768",
+  ]
+}
+embassy-usb-driver = "=0.2.0"
+panic-probe = { version = "1.0", features = ["print-defmt"] }
+static_cell = "2"
+
+rand = { version = "0.8.4", default-features = false }
+rand_chacha = { version = "0.3", default-features = false }
+rand_core = { version = "0.6" }
+
+[build-dependencies]
+json = "0.12"
+xz2 = "0.1.7"
+
+[lints.clippy]
+absolute_paths = "deny"
+all = "deny"
+allow_attributes_without_reason = "deny"
+clone_on_ref_ptr = "deny"
+manual_assert = "deny"
+mod_module_files = "deny"
+panic = "deny"
+pedantic = "deny"
+unused_trait_names = "deny"
+unwrap_used = "deny"
+
+[lints.rust]
+warnings = "deny"
+
+[profile.dev]
+opt-level = 1
+debug = true
+overflow-checks = true
+lto = false
+panic = "unwind"
+codegen-units = 1
+
+[profile.release]
+opt-level = "z"
+debug = true
+overflow-checks = false
+lto = "fat"
+codegen-units = 1

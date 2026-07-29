@@ -1,0 +1,12 @@
+[target.'cfg(all(target_arch = "arm", target_os = "none"))']
+runner = "probe-rs run --chip nRF52840_xxAA"
+linker = "flip-link"
+
+[build]
+target = "thumbv7em-none-eabihf"
+
+[env]
+DEFMT_LOG = "info"
+KEYBOARD_TOML_PATH = { value = "keyboard.toml", relative = true }
+# rmk-types のパースで rustc がスタックを使い切るため広げる
+RUST_MIN_STACK = "67108864"
