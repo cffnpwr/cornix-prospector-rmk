@@ -49,6 +49,9 @@ rows = 4
 cols = 7
 row_offset = 4
 col_offset = 0
+battery_adc_pin = "P0_05"
+adc_divider_measured = 2000
+adc_divider_total = 2806
 
 [split.peripheral.matrix]
 row_pins = ["P1_09", "P0_28", "P0_03", "P1_10"]

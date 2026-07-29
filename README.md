@@ -17,6 +17,7 @@ JezailFunder 製 Cornix LP（nRF52840 無線分割キーボード）向けの [R
 - ロータリーエンコーダ: 左右とも `P1_04` / `P1_06`
 - バッテリ: SAADC、分圧比 `2000 / 2806`
 - BLE スタック: trouble-host + nrf-sdc（SoftDevice ブロブは使わない）
+- RMK: crates.io のリリース版ではなく main ブランチのコミットを `Cargo.toml` で固定している。split リンクの接続パラメータ改善（`max_latency` 30 → 10）がリリース版に入っていないため。
 
 ## 必要なツール
 
@@ -26,7 +27,7 @@ JezailFunder 製 Cornix LP（nRF52840 無線分割キーボード）向けの [R
 mise install
 ```
 
-Rust ツールチェーンは `rust-toolchain.toml` で 1.96.0 に固定しており、`thumbv7em-none-eabihf` ターゲットと `llvm-tools` を含む。rmk 0.8.2 は 1.97 以降の `core::pin::pin!` では `src/matrix.rs` と `src/direct_pin.rs` がコンパイルに失敗する。RMK 上流もビルド用ワークフローで同じ 1.96.0 を使っている。
+Rust ツールチェーンは `rust-toolchain.toml` で 1.97.1 に固定しており、`thumbv7em-none-eabihf` ターゲットと `llvm-tools` を含む。固定はビルドの再現性のためで、RMK 側の制約によるものではない（RMK 上流は `stable` を使っている）。
 
 ## ビルド
 
