@@ -1,4 +1,4 @@
-# cornix-rmk
+# cornix-prospector-rmk
 
 JezailFunder製[Cornix LP](https://jezailfunder.jp/products/cornix-lp-keyboard)向けの非公式[RMK](https://github.com/HaoboGu/rmk)ファームウェア。
 [Prospector](https://github.com/carrefinho/prospector)をBLE centralにします。
@@ -24,9 +24,9 @@ Prospector（ドングル）、Cornix LP（左右）の3デバイス構成です
 
 | firmware | 基板 |
 | --- | --- |
-| `cornix-rmk-central.uf2` | Prospector |
-| `cornix-rmk-peripheral-left.uf2` | Cornix LP 左手 |
-| `cornix-rmk-peripheral-right.uf2` | Cornix LP 右手 |
+| `prospector-central.uf2` | Prospector |
+| `cornix-left.uf2` | Cornix LP 左手 |
+| `cornix-right.uf2` | Cornix LP 右手 |
 
 ## How to build
 
@@ -72,17 +72,17 @@ cargo build --release
 Intel HEXに変換します。
 
 ```shell
-cargo objcopy --release --bin central -- -O ihex cornix-rmk-central.hex
-cargo objcopy --release --bin peripheral_left -- -O ihex cornix-rmk-peripheral-left.hex
-cargo objcopy --release --bin peripheral_right -- -O ihex cornix-rmk-peripheral-right.hex
+cargo objcopy --release --bin central -- -O ihex prospector-central.hex
+cargo objcopy --release --bin peripheral_left -- -O ihex cornix-left.hex
+cargo objcopy --release --bin peripheral_right -- -O ihex cornix-right.hex
 ```
 
 uf2に変換します。
 
 ```shell
-cargo hex-to-uf2 --input-path cornix-rmk-central.hex --output-path cornix-rmk-central.uf2 --family nrf52840
-cargo hex-to-uf2 --input-path cornix-rmk-peripheral-left.hex --output-path cornix-rmk-peripheral-left.uf2 --family nrf52840
-cargo hex-to-uf2 --input-path cornix-rmk-peripheral-right.hex --output-path cornix-rmk-peripheral-right.uf2 --family nrf52840
+cargo hex-to-uf2 --input-path prospector-central.hex --output-path prospector-central.uf2 --family nrf52840
+cargo hex-to-uf2 --input-path cornix-left.hex --output-path cornix-left.uf2 --family nrf52840
+cargo hex-to-uf2 --input-path cornix-right.hex --output-path cornix-right.uf2 --family nrf52840
 ```
 
 ## How to flash

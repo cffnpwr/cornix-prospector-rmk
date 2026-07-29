@@ -1,4 +1,4 @@
-# cornix-rmk
+# cornix-prospector-rmk
 
 Unofficial [RMK](https://github.com/HaoboGu/rmk) firmware for the JezailFunder
 [Cornix LP](https://jezailfunder.jp/products/cornix-lp-keyboard).
@@ -25,9 +25,9 @@ Routing the right half through the dongle removes the extra BLE hop it would oth
 
 | firmware | Board |
 | --- | --- |
-| `cornix-rmk-central.uf2` | Prospector |
-| `cornix-rmk-peripheral-left.uf2` | Cornix LP, left |
-| `cornix-rmk-peripheral-right.uf2` | Cornix LP, right |
+| `prospector-central.uf2` | Prospector |
+| `cornix-left.uf2` | Cornix LP, left |
+| `cornix-right.uf2` | Cornix LP, right |
 
 ## How to build
 
@@ -73,17 +73,17 @@ cargo build --release
 Convert them to Intel HEX.
 
 ```shell
-cargo objcopy --release --bin central -- -O ihex cornix-rmk-central.hex
-cargo objcopy --release --bin peripheral_left -- -O ihex cornix-rmk-peripheral-left.hex
-cargo objcopy --release --bin peripheral_right -- -O ihex cornix-rmk-peripheral-right.hex
+cargo objcopy --release --bin central -- -O ihex prospector-central.hex
+cargo objcopy --release --bin peripheral_left -- -O ihex cornix-left.hex
+cargo objcopy --release --bin peripheral_right -- -O ihex cornix-right.hex
 ```
 
 Convert them to uf2.
 
 ```shell
-cargo hex-to-uf2 --input-path cornix-rmk-central.hex --output-path cornix-rmk-central.uf2 --family nrf52840
-cargo hex-to-uf2 --input-path cornix-rmk-peripheral-left.hex --output-path cornix-rmk-peripheral-left.uf2 --family nrf52840
-cargo hex-to-uf2 --input-path cornix-rmk-peripheral-right.hex --output-path cornix-rmk-peripheral-right.uf2 --family nrf52840
+cargo hex-to-uf2 --input-path prospector-central.hex --output-path prospector-central.uf2 --family nrf52840
+cargo hex-to-uf2 --input-path cornix-left.hex --output-path cornix-left.uf2 --family nrf52840
+cargo hex-to-uf2 --input-path cornix-right.hex --output-path cornix-right.uf2 --family nrf52840
 ```
 
 ## How to flash
