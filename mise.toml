@@ -20,7 +20,7 @@ run = [
 ]
 
 [tasks.uf2]
-description = "Generate uf2 images for the Adafruit nRF52 bootloader"
+description = "Generate uf2 images"
 depends = ["hex"]
 run = [
   "cargo hex-to-uf2 --input-path cornix-rmk-central.hex --output-path cornix-rmk-central.uf2 --family nrf52840",
