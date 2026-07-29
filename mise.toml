@@ -7,23 +7,25 @@ tombi = "1.2.4"
 "cargo:cargo-hex-to-uf2" = "0.1.2"
 
 [tasks.build]
-description = "Build central and peripheral firmware"
+description = "Build dongle central and left/right peripheral firmware"
 run = "cargo build --release"
 
 [tasks.hex]
 description = "Generate Intel HEX images"
 depends = ["build"]
 run = [
-  "cargo objcopy --release --bin central -- -O ihex cornix-rmk-central.hex",
-  "cargo objcopy --release --bin peripheral -- -O ihex cornix-rmk-peripheral.hex",
+  "cargo objcopy --release --bin central -- -O ihex prospector-central.hex",
+  "cargo objcopy --release --bin peripheral_left -- -O ihex cornix-left.hex",
+  "cargo objcopy --release --bin peripheral_right -- -O ihex cornix-right.hex",
 ]
 
 [tasks.uf2]
-description = "Generate uf2 images for the Adafruit nRF52 bootloader"
+description = "Generate uf2 images"
 depends = ["hex"]
 run = [
-  "cargo hex-to-uf2 --input-path cornix-rmk-central.hex --output-path cornix-rmk-central.uf2 --family nrf52840",
-  "cargo hex-to-uf2 --input-path cornix-rmk-peripheral.hex --output-path cornix-rmk-peripheral.uf2 --family nrf52840",
+  "cargo hex-to-uf2 --input-path prospector-central.hex --output-path prospector-central.uf2 --family nrf52840",
+  "cargo hex-to-uf2 --input-path cornix-left.hex --output-path cornix-left.uf2 --family nrf52840",
+  "cargo hex-to-uf2 --input-path cornix-right.hex --output-path cornix-right.uf2 --family nrf52840",
 ]
 
 [tasks.lint]

@@ -7,7 +7,7 @@ product_id = 0x4643
 chip = "nrf52840"
 
 [rmk]
-split_peripherals_num = 1
+split_peripherals_num = 2
 debounce_time = 5
 ble_profiles_num = 5
 
@@ -20,34 +20,51 @@ enabled = true
 
 [ble]
 enabled = true
-battery_adc_pin = "P0_05"
-adc_divider_measured = 2000
-adc_divider_total = 2806
 
 [split]
 connection = "ble"
 
+# ドングル(XIAO nRF52840)はキーを持たないため、マトリクスもエンコーダも定義しない
 [split.central]
-rows = 4
-cols = 7
+rows = 0
+cols = 0
 row_offset = 0
 col_offset = 0
 
 [split.central.matrix]
+row_pins = []
+col_pins = []
+
+# 左手
+[[split.peripheral]]
+rows = 4
+cols = 7
+row_offset = 0
+col_offset = 0
+battery_adc_pin = "P0_05"
+adc_divider_measured = 2000
+adc_divider_total = 2806
+
+[split.peripheral.matrix]
 row_pins = ["P0_30", "P0_31", "P0_29", "P0_02"]
 col_pins = ["P0_28", "P0_03", "P1_10", "P1_11", "P1_13", "P0_09", "P0_10"]
 
-[[split.central.input_device.encoder]]
+[[split.peripheral.input_device.encoder]]
 pin_a = "P1_04"
 pin_b = "P1_06"
+internal_pullup = true
 phase = "resolution"
 resolution = 4
 
+# 右手
 [[split.peripheral]]
 rows = 4
 cols = 7
 row_offset = 4
 col_offset = 0
+battery_adc_pin = "P0_05"
+adc_divider_measured = 2000
+adc_divider_total = 2806
 
 [split.peripheral.matrix]
 row_pins = ["P1_09", "P0_28", "P0_03", "P1_10"]
@@ -56,6 +73,7 @@ col_pins = ["P0_30", "P0_31", "P0_29", "P0_02", "P1_13", "P0_10", "P0_09"]
 [[split.peripheral.input_device.encoder]]
 pin_a = "P1_04"
 pin_b = "P1_06"
+internal_pullup = true
 phase = "resolution"
 resolution = 4
 
