@@ -16,8 +16,9 @@ JezailFunder製[Cornix LP](https://jezailfunder.jp/products/cornix-lp-keyboard)�
   - peripheralのエンコーダの追従性を保つsplitリンクの接続パラメータが、まだどのリリースにも入っていないためです
 - `vial.json`がエンコーダを宣言していないため、エンコーダはVialから変更できません
   - 動作は`keyboard.toml`の`encoders`で決まります
-- Bluetoothチャンネルを切り替えるキーは、キーマップに割り当てていません
+- Bluetoothチャンネルを切り替えるキーは、既定のキーマップに置いていません
   - ドングルはUSBでホストへつながるため、BLEのチャンネルを使う場面が限られます
+  - 必要な場合は`BT0`から`BT4`、`Next BT`、`Prev BT`、`Clear BT`、`Switch Output`、`Clear Peer`をVialから割り当てられます
 
 ## Devices
 
@@ -127,6 +128,7 @@ Prospectorに使うXIAO nRF52840は[Adafruit nRF52 Bootloader](https://github.co
 
 ペアリング情報は各基板のストレージにあります。
 役割の入れ替えやドングルの交換のあとで接続しなくなった場合は、`keyboard.toml`の`[storage]`に`clear_storage = true`を設定して3台とも書き込み、設定を戻します。
+Vialで`Clear Peer`を割り当てておけば、5秒長押しで左右のペアリング情報だけを消せます。
 
 RMKは既存のSoftDeviceを自前のBLEスタックで置き換えます。
 ZMKなどSoftDevice前提のファームへ戻すには、ブートローダの再書き込みが必要です。
