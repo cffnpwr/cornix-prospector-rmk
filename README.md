@@ -17,8 +17,10 @@ A [Prospector](https://github.com/carrefinho/prospector) acts as the BLE central
   - The split link connection parameters that keep the peripheral encoders responsive are not in any release yet
 - Encoders cannot be remapped from Vial because `vial.json` does not declare them
   - Their actions come from `encoders` in `keyboard.toml`
-- No key is bound to switching Bluetooth channels
+- The default keymap has no key for switching Bluetooth channels
   - The dongle reaches the host over USB, which leaves few occasions to use a BLE channel
+  - Assign them from Vial when needed: `BT0` through `BT4`, `Next BT`, `Prev BT`, `Clear BT`,
+    `Switch Output` and `Clear Peer`
 
 ## Devices
 
@@ -130,6 +132,7 @@ The XIAO nRF52840 used for the Prospector is supported by the
 Pairing information lives in each board's storage.
 If the halves stop connecting after roles change or a dongle is swapped, set `clear_storage = true` under `[storage]`
 in `keyboard.toml`, flash all three, then revert the setting.
+With `Clear Peer` assigned from Vial, holding it for five seconds clears just the split pairing info.
 
 RMK replaces any existing SoftDevice with its own BLE stack.
 Going back to SoftDevice-based firmware such as ZMK requires reflashing the bootloader.
