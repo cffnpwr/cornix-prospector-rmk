@@ -20,6 +20,13 @@ enabled = true
 
 [ble]
 enabled = true
+use_2m_phy = true
+# 公式ファーム V1.12 と同じ値
+default_tx_power = 8
+
+[chip.nrf52840]
+dcdc_reg0 = true
+dcdc_reg1 = true
 
 [split]
 connection = "ble"

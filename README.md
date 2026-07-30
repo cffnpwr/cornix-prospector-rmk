@@ -9,6 +9,7 @@ A [Prospector](https://github.com/carrefinho/prospector) acts as the BLE central
 ## Features
 
 - Keymap editing with Vial ([vial.rocks](https://vial.rocks/))
+- Indicator LEDs for the connection state and the battery
 
 ## Notes
 
@@ -16,6 +17,8 @@ A [Prospector](https://github.com/carrefinho/prospector) acts as the BLE central
   - The split link connection parameters that keep the peripheral encoders responsive are not in any release yet
 - Encoders cannot be remapped from Vial because `vial.json` does not declare them
   - Their actions come from `encoders` in `keyboard.toml`
+- No key is bound to switching Bluetooth channels
+  - The dongle reaches the host over USB, which leaves few occasions to use a BLE channel
 
 ## Devices
 
@@ -28,6 +31,32 @@ Routing the right half through the dongle removes the extra BLE hop it would oth
 | `prospector-central.uf2` | Prospector |
 | `cornix-left.uf2` | Cornix LP, left |
 | `cornix-right.uf2` | Cornix LP, right |
+
+## Indicator LED
+
+Each half carries two full-color LEDs (WS2812).
+They are only powered while there is something to show, so they stay dark when nothing is wrong.
+For the first two seconds after power-on, the inner LED lights red and the outer one green.
+
+The roles differ between the halves, following the official firmware.
+
+| Unit | Inner | Outer |
+| --- | --- | --- |
+| Left | Battery and the link to the dongle | Bluetooth channel |
+| Right | Battery | Link to the dongle |
+
+| Display | Meaning |
+| --- | --- |
+| Slow blink in the channel color | Searching for a host |
+| Lit for one second in the channel color | Connected to a host |
+| Slow blink in blue | Link to the dongle lost |
+| Lit for one second in blue | Connected to the dongle |
+| Slow blink in green | Charging |
+| Lit for one second in green | Charging finished |
+| Blink in red | Battery below 20% |
+
+The color for each channel is 0 green, 1 red, 2 blue, 3 yellow, 4 cyan.
+The searching indication is suppressed while a host is using the dongle over USB.
 
 ## How to build
 

@@ -8,6 +8,7 @@ JezailFunder製[Cornix LP](https://jezailfunder.jp/products/cornix-lp-keyboard)�
 ## Features
 
 - Vial（[vial.rocks](https://vial.rocks/)）でのキーマップ変更に対応
+- インジケーターLEDによる接続状態とバッテリーの表示
 
 ## Notes
 
@@ -15,6 +16,8 @@ JezailFunder製[Cornix LP](https://jezailfunder.jp/products/cornix-lp-keyboard)�
   - peripheralのエンコーダの追従性を保つsplitリンクの接続パラメータが、まだどのリリースにも入っていないためです
 - `vial.json`がエンコーダを宣言していないため、エンコーダはVialから変更できません
   - 動作は`keyboard.toml`の`encoders`で決まります
+- Bluetoothチャンネルを切り替えるキーは、キーマップに割り当てていません
+  - ドングルはUSBでホストへつながるため、BLEのチャンネルを使う場面が限られます
 
 ## Devices
 
@@ -27,6 +30,32 @@ Prospector（ドングル）、Cornix LP（左右）の3デバイス構成です
 | `prospector-central.uf2` | Prospector |
 | `cornix-left.uf2` | Cornix LP 左手 |
 | `cornix-right.uf2` | Cornix LP 右手 |
+
+## Indicator LED
+
+左右それぞれにフルカラーLED（WS2812）が2個あります。
+表示する内容がある間だけ給電するため、問題のない状態では消灯します。
+起動から2秒間は内側が赤、外側が緑に点灯します。
+
+役割は公式ファームウェアに合わせ、左右で異なります。
+
+| ユニット | 内側 | 外側 |
+| --- | --- | --- |
+| 左手 | バッテリーとドングルとの接続 | Bluetoothチャンネル |
+| 右手 | バッテリー | ドングルとの接続 |
+
+| 表示 | 意味 |
+| --- | --- |
+| チャンネルに対応した色でゆっくり点滅 | ホストを検索中 |
+| チャンネルに対応した色で1秒点灯 | ホストへ接続 |
+| 青でゆっくり点滅 | ドングルとの接続が切断 |
+| 青で1秒点灯 | ドングルへ接続 |
+| 緑でゆっくり点滅 | 充電中 |
+| 緑で1秒点灯 | 充電完了 |
+| 赤で点滅 | バッテリー残量が20%未満 |
+
+チャンネルごとの色は0が緑、1が赤、2が青、3が黄、4がシアンです。
+ドングルをUSBでホストに使っている間は、検索中の表示をしません。
 
 ## How to build
 
