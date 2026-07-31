@@ -75,6 +75,7 @@ embassy-nrf = {
 embedded-graphics = "0.8"
 embedded-hal = "1.0"
 embedded-hal-bus = { version = "0.3", features = ["async"] }
+u8g2-fonts = "0.8"
 
 embassy-time = {
   version = "0.5",

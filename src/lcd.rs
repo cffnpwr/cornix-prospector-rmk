@@ -26,11 +26,13 @@ use rmk::display::lcd_async::Builder;
 use rmk::display::lcd_async::interface::SpiInterface;
 use rmk::display::lcd_async::models::ST7789;
 use rmk::display::lcd_async::options::{ColorInversion, ColorOrder, Orientation, Rotation};
-use rmk::event::LayerChangeEvent;
+use rmk::event::{
+    ConnectionStatusChangeEvent, LayerChangeEvent, ModifierEvent, PeripheralBatteryEvent,
+};
 use rmk::macros::processor;
 use static_cell::StaticCell;
 
-use crate::status_screen;
+use crate::status_screen::{self, Status};
 
 /// Width (px) of the panel in its native orientation.
 const PANEL_WIDTH: u16 = 240;
@@ -106,9 +108,13 @@ const BACKLIGHT_DEFAULT: u16 = BACKLIGHT_MAX;
 
 /// Shortest time between two flushes.
 ///
-/// One flush transfers the whole framebuffer, so without a limit a burst of events would queue up
-/// transfers faster than the bus can drain them. RMK's own `DisplayProcessor` starts from the same
-/// 33ms.
+/// One flush transfers the whole framebuffer, which at [`SPI_FREQUENCY`] takes about 134ms
+/// (134,400 bytes at 8MHz; computed, not measured), so the transfer itself already spaces flushes
+/// out by more than this. The limit is kept as the floor RMK's own `DisplayProcessor` uses and is
+/// not raised: raising it would not merge a burst, because each queued event is handled on its own
+/// and carries its own state, so it would only delay the frame. What keeps a burst bounded is that
+/// the event channels drop the states a lagging subscriber did not keep up with, and that
+/// [`LcdProcessor::render`] skips a flush whose result would be identical to what is on the panel.
 const MIN_RENDER_INTERVAL: Duration = Duration::from_millis(33);
 
 /// Framebuffer of the panel. Too large to build on the stack, so it lives in a static.
@@ -208,21 +214,23 @@ impl Backlight {
     }
 }
 
-/// Processor that keeps the panel showing the current layer.
+/// Processor that keeps the panel showing the state of the keyboard.
 ///
 /// RMK's own `DisplayProcessor` is not used: its `RenderContext` carries only the BLE status and
 /// cannot tell whether reports are going out over USB or over BLE, which this display has to show.
-#[processor(subscribe = [LayerChangeEvent])]
+/// The four events subscribed to here are what [`Status`] is assembled from, and are a subset of
+/// the eleven `DisplayProcessor` takes.
+#[processor(subscribe = [ConnectionStatusChangeEvent, LayerChangeEvent, ModifierEvent, PeripheralBatteryEvent])]
 pub struct LcdProcessor {
     /// Panel. `None` when initialization failed, in which case nothing is displayed and the rest
     /// of the firmware keeps running.
     panel: Option<Panel>,
     /// Backlight of the panel.
     backlight: Backlight,
-    /// Layer reported last.
-    layer: u8,
-    /// Layer the panel currently shows.
-    drawn_layer: Option<u8>,
+    /// State reported last.
+    status: Status,
+    /// State the panel currently shows.
+    drawn: Option<Status>,
     /// When the last flush finished, used by the redraw rate limit.
     last_render: Instant,
 }
@@ -258,8 +266,8 @@ impl LcdProcessor {
         let mut processor = Self {
             panel,
             backlight,
-            layer: 0,
-            drawn_layer: None,
+            status: Status::new(),
+            drawn: None,
             // Far enough in the past that the first frame is not held back by the rate limit.
             last_render: Instant::from_ticks(0),
         };
@@ -336,19 +344,45 @@ impl LcdProcessor {
         })
     }
 
-    /// Takes in a layer change.
-    async fn on_layer_change_event(&mut self, event: LayerChangeEvent) {
-        self.layer = event.0;
+    /// Takes in a change of the host connection state.
+    async fn on_connection_status_change_event(&mut self, event: ConnectionStatusChangeEvent) {
+        self.status.connection = event.0;
         self.render().await;
     }
 
-    /// Redraws and flushes when the content changed, waiting out [`MIN_RENDER_INTERVAL`] first.
+    /// Takes in a layer change.
+    async fn on_layer_change_event(&mut self, event: LayerChangeEvent) {
+        self.status.layer = event.0;
+        self.render().await;
+    }
+
+    /// Takes in a change of the modifiers being held.
+    async fn on_modifier_event(&mut self, event: ModifierEvent) {
+        self.status.modifiers = event.modifier;
+        self.render().await;
+    }
+
+    /// Takes in the battery of one half.
     ///
-    /// Waiting inside the handler leaves further events queued in the subscriber, so a burst
-    /// collapses into a single flush of the newest state.
+    /// The `id` is the one given to `#[rmk_peripheral]`, so it selects the half. Anything outside
+    /// the two halves is dropped rather than shown in the wrong place.
+    async fn on_peripheral_battery_event(&mut self, event: PeripheralBatteryEvent) {
+        let Some(battery) = self.status.batteries.get_mut(event.id) else {
+            return;
+        };
+        *battery = event.state.0;
+        self.render().await;
+    }
+
+    /// Redraws and flushes when the screen would come out different, waiting out
+    /// [`MIN_RENDER_INTERVAL`] since the last flush first.
+    ///
+    /// Comparing the whole state against what is on the panel is what suppresses the redundant
+    /// flushes: modifier and battery events in particular arrive far more often than the picture
+    /// changes.
     async fn render(&mut self) {
-        let layer = self.layer;
-        if self.drawn_layer == Some(layer) || self.panel.is_none() {
+        let status = self.status;
+        if self.drawn == Some(status) || self.panel.is_none() {
             return;
         }
 
@@ -358,11 +392,11 @@ impl LcdProcessor {
         }
 
         if let Some(panel) = self.panel.as_mut() {
-            status_screen::draw(panel, layer);
+            status_screen::draw(panel, &status);
             panel.flush().await;
         }
 
-        self.drawn_layer = Some(layer);
+        self.drawn = Some(status);
         self.last_render = Instant::now();
     }
 }
