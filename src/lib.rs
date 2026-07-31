@@ -1,8 +1,12 @@
-//! Code shared by the left and right peripheral firmware.
+//! Code shared by the three firmware binaries.
 //!
-//! Each binary has its own crate root, so types used from both are placed in this library.
+//! Each binary has its own crate root, so the types they use are placed in this library. Which
+//! binary uses which module differs: [`indicator`] and [`ws2812`] drive the LEDs of the left and
+//! right peripherals, while [`lcd`] and [`status_screen`] drive the LCD of the central dongle.
 
 #![no_std]
 
 pub mod indicator;
+pub mod lcd;
+pub mod status_screen;
 pub mod ws2812;

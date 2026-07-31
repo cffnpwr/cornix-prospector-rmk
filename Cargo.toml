@@ -44,6 +44,7 @@ rmk = {
     "async_matrix",
     "nrf52840_ble",
     "split",
+    "st7789",
   ]
 }
 
@@ -71,6 +72,10 @@ embassy-nrf = {
     "unstable-pac",
   ]
 }
+embedded-graphics = "0.8"
+embedded-hal = "1.0"
+embedded-hal-bus = { version = "0.3", features = ["async"] }
+
 embassy-time = {
   version = "0.5",
   features = [
