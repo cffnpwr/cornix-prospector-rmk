@@ -7,11 +7,14 @@
 //!
 //! This module only decides when to redraw; what is drawn lives in [`crate::status_screen`].
 
+mod spim3_anomaly198;
+
 use core::convert::Infallible;
 
 use embassy_nrf::Peri;
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin as GpioPin};
 use embassy_nrf::interrupt::typelevel::Binding;
+use embassy_nrf::peripherals::SPI3;
 use embassy_nrf::pwm::{DutyCycle, Instance as PwmInstance, Prescaler, SimpleConfig, SimplePwm};
 use embassy_nrf::spim::{
     Config as SpimConfig, Frequency, Instance as SpimInstance,
@@ -32,6 +35,7 @@ use rmk::event::{
 use rmk::macros::processor;
 use static_cell::StaticCell;
 
+use crate::lcd::spim3_anomaly198::Spim3Anomaly198Interface;
 use crate::status_screen::{self, Status};
 
 /// Width (px) of the panel in its native orientation.
@@ -123,8 +127,8 @@ static FRAME_BUFFER: StaticCell<[u8; FRAME_BUFFER_LEN]> = StaticCell::new();
 /// SPI device of the panel: the SPIM plus its chip select.
 type Bus = ExclusiveDevice<Spim<'static>, Output<'static>, Delay>;
 
-/// 4-line serial interface of the panel.
-type PanelInterface = SpiInterface<Bus, PolarityPin>;
+/// 4-line serial interface of the panel, wrapped in the workaround of [`spim3_anomaly198`].
+type PanelInterface = Spim3Anomaly198Interface<SpiInterface<Bus, PolarityPin>>;
 
 /// Initialized panel together with its framebuffer.
 type Panel = LcdAsyncDisplay<
@@ -247,9 +251,9 @@ impl LcdProcessor {
         clippy::too_many_arguments,
         reason = "the panel needs six pins next to its two peripherals, and grouping them would only move the list elsewhere"
     )]
-    pub async fn new<S: SpimInstance, P: PwmInstance>(
-        spim: Peri<'static, S>,
-        irq: impl Binding<S::Interrupt, SpimInterruptHandler<S>> + 'static,
+    pub async fn new<P: PwmInstance>(
+        spim: Peri<'static, SPI3>,
+        irq: impl Binding<<SPI3 as SpimInstance>::Interrupt, SpimInterruptHandler<SPI3>> + 'static,
         sck: Peri<'static, impl GpioPin>,
         mosi: Peri<'static, impl GpioPin>,
         cs: Peri<'static, impl GpioPin>,
@@ -286,15 +290,18 @@ impl LcdProcessor {
 
     /// Builds the SPI bus and runs the initialization sequence of the panel.
     ///
+    /// The SPIM is [`SPI3`] rather than any instance, because the workaround the bus is wrapped in
+    /// applies to SPIM3 alone. See [`spim3_anomaly198`].
+    ///
     /// Returns `None` when the bus, the panel or the framebuffer fails to come up, so that the
     /// caller can give up on the display and keep running.
     #[allow(
         clippy::too_many_arguments,
         reason = "the panel needs six pins next to its SPIM, and grouping them would only move the list elsewhere"
     )]
-    async fn init_panel<S: SpimInstance>(
-        spim: Peri<'static, S>,
-        irq: impl Binding<S::Interrupt, SpimInterruptHandler<S>> + 'static,
+    async fn init_panel(
+        spim: Peri<'static, SPI3>,
+        irq: impl Binding<<SPI3 as SpimInstance>::Interrupt, SpimInterruptHandler<SPI3>> + 'static,
         sck: Peri<'static, impl GpioPin>,
         mosi: Peri<'static, impl GpioPin>,
         cs: Peri<'static, impl GpioPin>,
@@ -316,9 +323,11 @@ impl LcdProcessor {
         // Reset idles High; the builder pulses it Low itself.
         let reset = Output::new(reset, Level::High, OutputDrive::Standard);
 
+        let interface = Spim3Anomaly198Interface::new(SpiInterface::new(device, dc));
+
         // The size and the offset are given in the native orientation of the panel, because
         // lcd-async maps them onto the frame memory itself once it knows the rotation.
-        let panel = Builder::new(ST7789, SpiInterface::new(device, dc))
+        let panel = Builder::new(ST7789, interface)
             .reset_pin(reset)
             .display_size(PANEL_WIDTH, PANEL_HEIGHT)
             .display_offset(PANEL_OFFSET_X, PANEL_OFFSET_Y)
