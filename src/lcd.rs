@@ -83,9 +83,16 @@ const FRAME_BUFFER_LEN: usize = WIDTH * HEIGHT * 2;
 
 /// SPI clock.
 ///
-/// The panel is specified up to 31MHz. This starts on the safe side; the usable maximum is
-/// measured on hardware.
-const SPI_FREQUENCY: Frequency = Frequency::M8;
+/// The panel is specified up to 31MHz, and embassy only offers 8 / 16 / 32MHz
+/// (`embassy-nrf-0.11.0/src/spim.rs:44-51`), so this runs it about 3% over. That is a panel limit
+/// rather than a silicon one, so a violation would show up as a disturbed picture; **whether this
+/// panel tolerates it has to come from hardware and is not confirmed here.** Errata 189 ("SPIM: RX
+/// buffer error at 32 MHz operation") does not apply: it is limited to variant `0x01` (Engineering
+/// B) while this board is a Revision 3 (`nrfconnect/sdk-hal_nordic`
+/// `nrfx/mdk/nrf52_erratas.h:6497-6524`).
+///
+/// Drop this to `M16` if the picture is disturbed. Nothing else depends on the value.
+const SPI_FREQUENCY: Frequency = Frequency::M32;
 
 /// Whether the levels of the DC pin are swapped.
 ///
@@ -96,12 +103,12 @@ const DC_INVERTED: bool = false;
 
 /// Shortest time between two flushes.
 ///
-/// One flush transfers the whole framebuffer, which at [`SPI_FREQUENCY`] takes about 134ms
-/// (134,400 bytes at 8MHz; computed, not measured), so the transfer itself already spaces flushes
-/// out by more than this. The limit is kept as the floor RMK's own `DisplayProcessor` uses and is
-/// not raised: raising it would not merge a burst, because each queued event is handled on its own
-/// and carries its own state, so it would only delay the frame. What keeps a burst bounded is that
-/// the event channels drop the states a lagging subscriber did not keep up with, and that
+/// One flush transfers the whole framebuffer, which at [`SPI_FREQUENCY`] takes about 34ms
+/// (134,400 bytes at 32MHz; computed, not measured), so the limit and the transfer now cost about
+/// the same. The limit is kept as the floor RMK's own `DisplayProcessor` uses and is not raised:
+/// raising it would not merge a burst, because each queued event is handled on its own and carries
+/// its own state, so it would only delay the frame. What keeps a burst bounded is that the event
+/// channels drop the states a lagging subscriber did not keep up with, and that
 /// [`LcdProcessor::render`] skips a flush whose result would be identical to what is on the panel.
 const MIN_RENDER_INTERVAL: Duration = Duration::from_millis(33);
 
