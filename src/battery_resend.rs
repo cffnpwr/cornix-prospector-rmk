@@ -91,7 +91,7 @@ impl BatteryResendProcessor {
 
     /// Takes in a change of the split link connection state and schedules a re-publish on the
     /// transition to connected.
-    #[allow(
+    #[expect(
         clippy::unused_async,
         reason = "must stay async because #[processor] calls it with await"
     )]
@@ -106,7 +106,7 @@ impl BatteryResendProcessor {
     ///
     /// This also sees the events published by [`poll`](Self::poll), which carry the value already
     /// retained.
-    #[allow(
+    #[expect(
         clippy::unused_async,
         reason = "must stay async because #[processor] calls it with await"
     )]
@@ -115,7 +115,7 @@ impl BatteryResendProcessor {
     }
 
     /// Advances both timers and re-publishes the retained status when either elapses.
-    #[allow(
+    #[expect(
         clippy::unused_async,
         reason = "must stay async because #[processor] calls it with await"
     )]

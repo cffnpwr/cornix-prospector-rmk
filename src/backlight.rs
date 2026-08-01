@@ -257,7 +257,7 @@ impl BacklightProcessor {
     /// Nothing happens before the backlight is lit, so that a key pressed during startup cannot
     /// light a panel that is still showing what it held after reset, nor one that failed to come
     /// up at all.
-    #[allow(
+    #[expect(
         clippy::unused_async,
         reason = "must stay async because #[processor] calls it with await"
     )]
@@ -279,7 +279,7 @@ impl BacklightProcessor {
     }
 
     /// Lights the backlight once the panel has shown its first frame, then has nothing left to do.
-    #[allow(
+    #[expect(
         clippy::unused_async,
         reason = "must stay async because #[processor] calls it with await"
     )]
