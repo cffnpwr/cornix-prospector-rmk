@@ -28,6 +28,10 @@ default_tx_power = 8
 dcdc_reg0 = true
 dcdc_reg1 = true
 
+# 既定の枠は1で IndicatorProcessor が使い切るため、BatteryResendProcessor の分を足す
+[event.central_connected]
+subs = 2
+
 [split]
 connection = "ble"
 
