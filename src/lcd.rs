@@ -2,8 +2,8 @@
 //!
 //! The panel is a 240x280 ST7789 driven through a SPIM. It is rotated by [`ROTATION`], so the
 //! logical resolution is [`WIDTH`] x [`HEIGHT`] in landscape. [`framebuffer::FrameBuffer`] has no
-//! partial update and pushes the whole framebuffer on every flush, so redraws are rate limited by
-//! [`MIN_RENDER_INTERVAL`].
+//! partial update, so every redraw draws the whole screen and then pushes the whole framebuffer,
+//! which measured on hardware comes to about 57ms together, or 63ms with the brightness overlay up.
 //!
 //! This module only decides when to redraw; what is drawn lives in [`crate::status_screen`] and
 //! the backlight belongs to [`crate::backlight`]. The brightness overlay is the one thing that is
@@ -24,7 +24,7 @@ use embassy_nrf::spim::{
     Config as SpimConfig, Frequency, Instance as SpimInstance,
     InterruptHandler as SpimInterruptHandler, Spim,
 };
-use embassy_time::{Delay, Duration, Instant, Timer};
+use embassy_time::{Delay, Duration, Instant};
 use embedded_hal::digital::{ErrorType, OutputPin};
 use embedded_hal_bus::spi::ExclusiveDevice;
 use rmk::display::lcd_async::Builder;
@@ -103,21 +103,6 @@ const SPI_FREQUENCY: Frequency = Frequency::M32;
 /// Confirmed on hardware: the panel accepts the initialization sequence and shows what is drawn,
 /// which it would not with the levels the other way round. Flipping this swaps the two levels.
 const DC_INVERTED: bool = false;
-
-/// Shortest time between two flushes.
-///
-/// One flush transfers the whole framebuffer, which at [`SPI_FREQUENCY`] takes about 34ms
-/// (134,400 bytes at 32MHz; computed, not measured), so the limit and the transfer now cost about
-/// the same. The limit is kept as the floor RMK's own `DisplayProcessor` uses and is not raised:
-/// raising it would not merge a burst, because each queued event is handled on its own and carries
-/// its own state, so it would only delay the frame. What keeps a burst bounded is that the event
-/// channels drop the states a lagging subscriber did not keep up with, and that
-/// [`LcdProcessor::render`] skips a flush whose result would be identical to what is on the panel.
-///
-/// The limit is a small part of what a frame actually costs: one measured on hardware takes about
-/// 250ms, the rest of it being the redraw of the whole screen that precedes every transfer. How
-/// that rest divides between drawing and transferring was not measured.
-const MIN_RENDER_INTERVAL: Duration = Duration::from_millis(33);
 
 /// How long the brightness overlay stays fully in view once the brightness has stopped changing.
 ///
@@ -207,14 +192,13 @@ impl OutputPin for PolarityPin {
 /// documentation of [`crate::backlight`].
 ///
 /// The processor is polled on top of that, because the brightness overlay is an animation and
-/// nothing publishes an event per frame. The interval is [`MIN_RENDER_INTERVAL`] in milliseconds,
-/// written out as a literal because `poll_interval` takes nothing else
-/// (`rmk-macro/src/event_macros/utils.rs:67-76`). A tick that finds nothing to do costs one
-/// comparison, because [`render`](Self::render) returns at once while the screen would come out
-/// the way it already is.
+/// nothing publishes an event per frame. A tick that finds nothing to do costs one comparison,
+/// because [`render`](Self::render) returns at once while the screen would come out the way it
+/// already is.
 ///
-/// The tick is far shorter than a frame takes to reach the panel, which on hardware is about
-/// 250ms. While the overlay moves, the ticker of `polling_loop` is therefore always
+/// The tick is shorter than a frame takes to reach the panel, which on hardware is about 57ms, so
+/// it never paces the animation: the frames come as fast as the panel takes them. While the overlay
+/// moves, the ticker of `polling_loop` is therefore always
 /// overdue and `select` takes it ahead of the subscription every time
 /// (`embassy-futures-0.1.2/src/select.rs:60-71`), so the events go unread for the length of the
 /// slide. That costs freshness and nothing else: all four are published with `publish_event`
@@ -239,8 +223,6 @@ pub struct LcdProcessor {
     status: Status,
     /// State the panel currently shows.
     drawn: Option<Status>,
-    /// When the last flush finished, used by the redraw rate limit.
-    last_render: Instant,
     /// Brightness read from [`crate::backlight`] last, which a poll compares against to notice
     /// that the backlight has been stepped.
     brightness: Brightness,
@@ -273,8 +255,6 @@ impl LcdProcessor {
             panel,
             status: Status::new(),
             drawn: None,
-            // Far enough in the past that the first frame is not held back by the rate limit.
-            last_render: Instant::from_ticks(0),
             // Taken as the starting point rather than as a change, so that the step the backlight
             // comes up at does not slide the overlay in at boot.
             brightness: backlight::brightness(),
@@ -390,10 +370,9 @@ impl LcdProcessor {
     ///
     /// The slide is stepped one frame per poll towards whichever end the hold asks for, so a
     /// brightness change caught mid-departure brings the overlay back from where it had got to
-    /// rather than from off screen. What one frame lasts is not set here: a poll that draws waits
-    /// out [`MIN_RENDER_INTERVAL`] and then redraws and flushes the whole screen, which comes to
-    /// about 250ms on hardware, so the number of frames is what the length of the slide is chosen
-    /// with. See [`BRIGHTNESS_SLIDE_FRAMES`].
+    /// rather than from off screen. What one frame lasts is not set here: a poll that draws redraws
+    /// and flushes the whole screen, which comes to about 63ms on hardware, so the number of frames
+    /// is what the length of the slide is chosen with. See [`BRIGHTNESS_SLIDE_FRAMES`].
     async fn poll(&mut self) {
         let brightness = backlight::brightness();
         let now = Instant::now();
@@ -420,21 +399,17 @@ impl LcdProcessor {
         self.render().await;
     }
 
-    /// Redraws and flushes when the screen would come out different, waiting out
-    /// [`MIN_RENDER_INTERVAL`] since the last flush first.
+    /// Redraws and flushes when the screen would come out different.
     ///
     /// Comparing the whole state against what is on the panel is what suppresses the redundant
     /// flushes: modifier and battery events in particular arrive far more often than the picture
-    /// changes.
+    /// changes. That comparison, together with the event channels dropping the states a lagging
+    /// subscriber did not keep up with, is what bounds a burst; drawing a frame at all costs about
+    /// 57ms on hardware, which is its own floor.
     async fn render(&mut self) {
         let status = self.status;
         if self.drawn == Some(status) || self.panel.is_none() {
             return;
-        }
-
-        let elapsed = self.last_render.elapsed();
-        if elapsed < MIN_RENDER_INTERVAL {
-            Timer::after(MIN_RENDER_INTERVAL - elapsed).await;
         }
 
         if let Some(panel) = self.panel.as_mut() {
@@ -443,6 +418,5 @@ impl LcdProcessor {
         }
 
         self.drawn = Some(status);
-        self.last_render = Instant::now();
     }
 }

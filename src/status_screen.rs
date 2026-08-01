@@ -136,17 +136,15 @@ static LABEL_FONT: FontRenderer = FontRenderer::new::<u8g2_font_inb21_mr>();
 /// to leave.
 ///
 /// Only the number of frames is fixed here; how long one of them lasts is set by whoever steps
-/// [`BrightnessOverlay::slide`], which is [`crate::lcd`]. On hardware one frame takes about 250ms,
-/// measured as eight frames taking about two seconds. Of that, 33ms is the redraw rate limit of
-/// [`crate::lcd`] (`MIN_RENDER_INTERVAL`) and the rest is redrawing and transferring the whole
-/// screen, which every frame does because the panel has no partial update. How that rest divides
-/// between drawing and transferring was not measured.
+/// [`BrightnessOverlay::slide`], which is [`crate::lcd`]. Measured on hardware, a frame that carries
+/// the overlay takes about 63ms: roughly 29ms redrawing the whole screen and 34ms transferring it,
+/// which every frame does because the panel has no partial update.
 ///
-/// A smooth slide is therefore not available on this panel, and the number of frames buys duration
-/// rather than smoothness: three of them come to about 0.75s. That slide-in falls inside the two
-/// seconds of [`crate::lcd`] (`BRIGHTNESS_HOLD`), which are counted from the last brightness
-/// change, so the overlay stands fully in view for about 1.25s before it leaves.
-pub const BRIGHTNESS_SLIDE_FRAMES: u8 = 3;
+/// The number of frames therefore buys duration as much as smoothness.
+/// That slide-in falls inside the two seconds of [`crate::lcd`] (`BRIGHTNESS_HOLD`), which are
+/// counted from the last brightness change, so the overlay stands fully in view for about 1.7s
+/// before it leaves.
+pub const BRIGHTNESS_SLIDE_FRAMES: u8 = 4;
 
 /// The brightness overlay, and how far in it currently is.
 ///
