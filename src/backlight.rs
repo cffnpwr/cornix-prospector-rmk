@@ -10,6 +10,12 @@
 //! `ActionEvent` from [`LcdProcessor`](crate::lcd::LcdProcessor) would let a full screen flush hold
 //! up the keyboard task once the 16 slot channel filled. Nothing here draws, so the channel is
 //! always drained promptly and the display can never delay a keystroke.
+//!
+//! The display still has to show the step being set, which it takes from [`BRIGHTNESS`]: the step
+//! goes to the panel through a static that [`crate::lcd`] polls, so that the subscription to
+//! `ActionEvent` stays here and stays the only one.
+
+use core::sync::atomic::{AtomicU32, Ordering};
 
 use embassy_nrf::Peri;
 use embassy_nrf::gpio::{Level, Pin as GpioPin};
@@ -83,6 +89,56 @@ const BRIGHTNESS_UP_ID: u8 = 10;
 /// `Action::User` id that steps the backlight down. See [`BRIGHTNESS_UP_ID`].
 const BRIGHTNESS_DOWN_ID: u8 = 11;
 
+/// Number of bits [`BRIGHTNESS`] keeps the percentage in, which is also what the revision above it
+/// is shifted by.
+const BRIGHTNESS_PERCENT_BITS: u32 = 8;
+
+/// Mask of the percentage in [`BRIGHTNESS`].
+const BRIGHTNESS_PERCENT_MASK: u32 = 0xff;
+
+/// The brightness the screen shows, as `revision << BRIGHTNESS_PERCENT_BITS | percent`.
+///
+/// This is the whole path from the keycodes to [`crate::lcd`], which watches it and slides the
+/// brightness overlay in when it changes. It is a static rather than an event because the display
+/// must not subscribe to `ActionEvent`, see the module documentation, and it is one word rather
+/// than two so that a reader gets a percentage and the revision it belongs to from a single load,
+/// with no ordering to reason about between two locations.
+///
+/// `Relaxed` is enough for both sides: the word publishes no other data, so there is nothing for an
+/// acquire or a release to order it against, and a reader only compares the revision against the
+/// one it saw last.
+///
+/// The value here is only what stands until [`BacklightProcessor::new`] publishes the step the
+/// backlight starts at, which happens before anything reads it: the initializers of
+/// `#[register_processor]` run in the order the functions appear in `crate::central`, and the
+/// backlight is registered ahead of the display.
+static BRIGHTNESS: AtomicU32 = AtomicU32::new(0);
+
+/// The brightness [`crate::lcd`] shows, as it stands now.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Brightness {
+    /// How far up [`BACKLIGHT_LEVELS`] the backlight is, from 0 for off to 100 for the brightest.
+    /// This is a position in the steps and not the duty cycle, which grows geometrically: the
+    /// overlay shows which step of the sixteen is in use, not how much light comes out.
+    pub percent: u8,
+    /// Counts how often a brightness key has set the backlight, including the presses at either
+    /// end that leave the step where it is. A reader that only compared the percentage would miss
+    /// those, and miss a step down and back up between two of its own reads as well. It wraps
+    /// around, which is harmless because it is only ever compared for equality.
+    pub revision: u8,
+}
+
+/// The brightness as it stands now. See [`BRIGHTNESS`].
+#[must_use]
+pub fn brightness() -> Brightness {
+    let packed = BRIGHTNESS.load(Ordering::Relaxed);
+    Brightness {
+        percent: u8::try_from(packed & BRIGHTNESS_PERCENT_MASK).unwrap_or(0),
+        revision: u8::try_from((packed >> BRIGHTNESS_PERCENT_BITS) & BRIGHTNESS_PERCENT_MASK)
+            .unwrap_or(0),
+    }
+}
+
 /// Backlight of the panel, driven by one PWM channel.
 struct Backlight {
     pwm: SimplePwm<'static>,
@@ -143,25 +199,47 @@ pub struct BacklightProcessor {
     backlight: Backlight,
     /// Index into [`BACKLIGHT_LEVELS`] the backlight is at, or will be set to once it is lit.
     level: usize,
+    /// How often a brightness key has set the level, see [`Brightness::revision`].
+    revision: u8,
     /// Whether the backlight has been lit, that is, whether [`level`](Self::level) is what the PWM
     /// currently outputs.
     lit: bool,
 }
 
 impl BacklightProcessor {
-    /// Sets the backlight pin up as a PWM output and leaves it dark.
+    /// Sets the backlight pin up as a PWM output, leaves it dark and publishes the step it will
+    /// come up at.
+    ///
+    /// The step is published here rather than when the backlight is lit so that [`crate::lcd`],
+    /// which is built afterwards, starts out agreeing with it and shows no overlay at boot.
     pub fn new<T: PwmInstance>(pwm: Peri<'static, T>, pin: Peri<'static, impl GpioPin>) -> Self {
-        Self {
+        let processor = Self {
             backlight: Backlight::new(pwm, pin),
             level: BACKLIGHT_DEFAULT_LEVEL,
+            revision: 0,
             lit: false,
-        }
+        };
+        processor.publish();
+        processor
     }
 
     /// Drives the PWM to the current level and records that the backlight is lit.
     fn apply(&mut self) {
         self.backlight.set_brightness(BACKLIGHT_LEVELS[self.level]);
         self.lit = true;
+    }
+
+    /// Publishes the current level and revision to [`BRIGHTNESS`].
+    ///
+    /// The percentage is rounded, so that the two ends of the range are the only steps that come
+    /// out as 0 and as 100.
+    fn publish(&self) {
+        let top = BACKLIGHT_LEVELS.len() - 1;
+        let percent = u8::try_from((self.level * 100 + top / 2) / top.max(1)).unwrap_or(100);
+        BRIGHTNESS.store(
+            (u32::from(self.revision) << BRIGHTNESS_PERCENT_BITS) | u32::from(percent),
+            Ordering::Relaxed,
+        );
     }
 
     /// Steps the backlight when a brightness key is pressed, and ignores every other action.
@@ -194,6 +272,10 @@ impl BacklightProcessor {
             _ => return,
         };
         self.apply();
+        // Counted even when the level did not move, so that a press against either end keeps the
+        // overlay on screen for as long as the key is being pressed.
+        self.revision = self.revision.wrapping_add(1);
+        self.publish();
     }
 
     /// Lights the backlight once the panel has shown its first frame, then has nothing left to do.

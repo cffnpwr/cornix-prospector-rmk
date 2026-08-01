@@ -18,13 +18,17 @@
 //! from the target itself and receives everything it shows as a [`Status`], so the screen can be
 //! changed without touching [`crate::lcd`].
 //!
+//! On top of the three bands comes the brightness overlay, which is shown only while the backlight
+//! is being adjusted and covers the middle of the screen while it is.
+//!
 //! This module holds what the screen shares — the state it is given, the colors, the fonts and the
 //! two upper bands — while the parts that stand on their own live beside it: the icon bitmaps in
-//! [`icons`] and the battery band in [`battery`]. Every coordinate, color, font and threshold is a
-//! constant of whichever of the three owns it. The values come from `.tmp/screen.json`, which is
-//! what the layout was settled against in a browser preview.
+//! [`icons`], the battery band in [`battery`] and the brightness overlay in [`brightness`]. Every
+//! coordinate, color, font and threshold is a constant of whichever of the four owns it. The values
+//! come from `.tmp/screen.json`, which is what the layout was settled against in a browser preview.
 
 mod battery;
+mod brightness;
 mod icons;
 
 use embedded_graphics::pixelcolor::Rgb565;
@@ -128,6 +132,38 @@ static LAYER_FONT: FontRenderer = FontRenderer::new::<u8g2_font_inb42_mr>();
 /// character.
 static LABEL_FONT: FontRenderer = FontRenderer::new::<u8g2_font_inb21_mr>();
 
+/// Number of frames the brightness overlay takes to come in from the right edge, and as many again
+/// to leave.
+///
+/// Only the number of frames is fixed here; how long one of them lasts is set by whoever steps
+/// [`BrightnessOverlay::slide`], which is [`crate::lcd`]. On hardware one frame takes about 250ms,
+/// measured as eight frames taking about two seconds. Of that, 33ms is the redraw rate limit of
+/// [`crate::lcd`] (`MIN_RENDER_INTERVAL`) and the rest is redrawing and transferring the whole
+/// screen, which every frame does because the panel has no partial update. How that rest divides
+/// between drawing and transferring was not measured.
+///
+/// A smooth slide is therefore not available on this panel, and the number of frames buys duration
+/// rather than smoothness: three of them come to about 0.75s. That slide-in falls inside the two
+/// seconds of [`crate::lcd`] (`BRIGHTNESS_HOLD`), which are counted from the last brightness
+/// change, so the overlay stands fully in view for about 1.25s before it leaves.
+pub const BRIGHTNESS_SLIDE_FRAMES: u8 = 3;
+
+/// The brightness overlay, and how far in it currently is.
+///
+/// Kept out of the rest of [`Status`] as an `Option` rather than as a flag beside the level,
+/// because the overlay is a thing the screen either draws or does not: while it is not shown, no
+/// brightness at all takes part in what the panel displays.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct BrightnessOverlay {
+    /// How far up the backlight steps the brightness is, from 0 for off to 100 for the brightest.
+    /// This is a position in the steps and not the duty cycle, which grows geometrically.
+    pub percent: u8,
+    /// How far the overlay has come in, from 1 for barely on screen up to
+    /// [`BRIGHTNESS_SLIDE_FRAMES`] for fully in. Zero is not a state of the overlay: it is the
+    /// overlay not being there, which [`Status::brightness`] spells as `None`.
+    pub slide: u8,
+}
+
 /// Everything the screen shows.
 ///
 /// This is the whole interface between the processor that tracks the state and the screen that
@@ -142,11 +178,13 @@ pub struct Status {
     pub modifiers: ModifierCombination,
     /// Battery of each half, indexed by [`HALF_LEFT`] and [`HALF_RIGHT`].
     pub batteries: [BatteryStatus; HALF_COUNT],
+    /// Brightness overlay, `None` while it is not on screen.
+    pub brightness: Option<BrightnessOverlay>,
 }
 
 impl Status {
-    /// The state before any event has been received: nothing connected, layer 0, no modifier held
-    /// and both batteries unknown.
+    /// The state before any event has been received: nothing connected, layer 0, no modifier held,
+    /// both batteries unknown and no brightness overlay.
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -154,6 +192,7 @@ impl Status {
             layer: 0,
             modifiers: ModifierCombination::from_bits(0),
             batteries: [BatteryStatus::Unavailable; HALF_COUNT],
+            brightness: None,
         }
     }
 }
@@ -165,6 +204,9 @@ impl Default for Status {
 }
 
 /// Draws the whole screen for `status` onto `target`.
+///
+/// The brightness overlay comes last on purpose: it is meant to cover the layer while the backlight
+/// is being adjusted, so it has to be drawn over it rather than under it.
 pub fn draw<D: DrawTarget<Color = Rgb565>>(target: &mut D, status: &Status) {
     let _cleared = target.clear(BACKGROUND);
 
@@ -174,6 +216,9 @@ pub fn draw<D: DrawTarget<Color = Rgb565>>(target: &mut D, status: &Status) {
     draw_modifiers(target, width, status.modifiers);
     draw_layer(target, width, status.layer);
     battery::draw_batteries(target, width, status);
+    if let Some(overlay) = status.brightness {
+        brightness::draw_brightness(target, width, overlay);
+    }
 }
 
 /// Draws the transport that reports are routed to, in the top left corner.

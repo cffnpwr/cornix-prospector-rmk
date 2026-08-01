@@ -6,7 +6,9 @@
 //! [`MIN_RENDER_INTERVAL`].
 //!
 //! This module only decides when to redraw; what is drawn lives in [`crate::status_screen`] and
-//! the backlight belongs to [`crate::backlight`].
+//! the backlight belongs to [`crate::backlight`]. The brightness overlay is the one thing that is
+//! not redrawn from an event: it is an animation, so [`LcdProcessor::poll`] steps it and watches
+//! [`crate::backlight::brightness`] for the changes that start it.
 
 mod spim3_anomaly198;
 
@@ -36,8 +38,9 @@ use rmk::event::{
 use rmk::macros::processor;
 use static_cell::StaticCell;
 
+use crate::backlight::{self, Brightness};
 use crate::lcd::spim3_anomaly198::Spim3Anomaly198Interface;
-use crate::status_screen::{self, Status};
+use crate::status_screen::{self, BRIGHTNESS_SLIDE_FRAMES, BrightnessOverlay, Status};
 
 /// Width (px) of the panel in its native orientation.
 const PANEL_WIDTH: u16 = 240;
@@ -110,7 +113,17 @@ const DC_INVERTED: bool = false;
 /// its own state, so it would only delay the frame. What keeps a burst bounded is that the event
 /// channels drop the states a lagging subscriber did not keep up with, and that
 /// [`LcdProcessor::render`] skips a flush whose result would be identical to what is on the panel.
+///
+/// The limit is a small part of what a frame actually costs: one measured on hardware takes about
+/// 250ms, the rest of it being the redraw of the whole screen that precedes every transfer. How
+/// that rest divides between drawing and transferring was not measured.
 const MIN_RENDER_INTERVAL: Duration = Duration::from_millis(33);
+
+/// How long the brightness overlay stays fully in view once the brightness has stopped changing.
+///
+/// Measured from the last change rather than from the first, so that a run of presses keeps the
+/// overlay up and the count starts when the adjustment ends.
+const BRIGHTNESS_HOLD: Duration = Duration::from_secs(2);
 
 /// Framebuffer of the panel. Too large to build on the stack, so it lives in a static.
 static FRAME_BUFFER: StaticCell<[u8; FRAME_BUFFER_LEN]> = StaticCell::new();
@@ -190,8 +203,34 @@ impl OutputPin for PolarityPin {
 /// RMK's own `DisplayProcessor` is not used: its `RenderContext` carries only the BLE status and
 /// cannot tell whether reports are going out over USB or over BLE, which this display has to show.
 /// The four events subscribed to here are what [`Status`] is assembled from, and are a subset of
-/// the eleven `DisplayProcessor` takes.
-#[processor(subscribe = [ConnectionStatusChangeEvent, LayerChangeEvent, ModifierEvent, PeripheralBatteryEvent])]
+/// the eleven `DisplayProcessor` takes. **`ActionEvent` must not be added to them**, see the
+/// documentation of [`crate::backlight`].
+///
+/// The processor is polled on top of that, because the brightness overlay is an animation and
+/// nothing publishes an event per frame. The interval is [`MIN_RENDER_INTERVAL`] in milliseconds,
+/// written out as a literal because `poll_interval` takes nothing else
+/// (`rmk-macro/src/event_macros/utils.rs:67-76`). A tick that finds nothing to do costs one
+/// comparison, because [`render`](Self::render) returns at once while the screen would come out
+/// the way it already is.
+///
+/// The tick is far shorter than a frame takes to reach the panel, which on hardware is about
+/// 250ms. While the overlay moves, the ticker of `polling_loop` is therefore always
+/// overdue and `select` takes it ahead of the subscription every time
+/// (`embassy-futures-0.1.2/src/select.rs:60-71`), so the events go unread for the length of the
+/// slide. That costs freshness and nothing else: all four are published with `publish_event`
+/// (`rmk/src/event/mod.rs:200-204`), which never waits and drops the oldest state instead
+/// (`embassy-sync-0.7.2/src/pubsub/mod.rs:352-360`), so no publisher is ever held up and the
+/// newest state of each is still queued once the slide is over. The ticker catches up in the polls
+/// that follow, which draw nothing.
+///
+/// Polling rather than a `DeadlineProcessor` (`rmk/src/processor/mod.rs:113-150`), which would idle
+/// on the subscription and only arm a timer while the overlay moves: `#[register_processor]`
+/// expands to `process_loop()` or to `polling_loop()` and never to `run()`
+/// (`rmk-macro/src/codegen/registered_processor.rs:60-71`), so `deadline_loop` could only be
+/// reached by implementing `PollingProcessor` by hand and overriding `polling_loop`, leaving
+/// `interval` and `update` behind as members that are never called. A 30Hz tick on a dongle that
+/// runs off USB power is not worth that.
+#[processor(subscribe = [ConnectionStatusChangeEvent, LayerChangeEvent, ModifierEvent, PeripheralBatteryEvent], poll_interval = 33)]
 pub struct LcdProcessor {
     /// Panel. `None` when initialization failed, in which case nothing is displayed and the rest
     /// of the firmware keeps running.
@@ -202,6 +241,14 @@ pub struct LcdProcessor {
     drawn: Option<Status>,
     /// When the last flush finished, used by the redraw rate limit.
     last_render: Instant,
+    /// Brightness read from [`crate::backlight`] last, which a poll compares against to notice
+    /// that the backlight has been stepped.
+    brightness: Brightness,
+    /// How far the brightness overlay has come in, from 0 for off screen up to
+    /// [`BRIGHTNESS_SLIDE_FRAMES`] for fully in.
+    slide: u8,
+    /// When the overlay starts sliding back out.
+    hold_until: Instant,
 }
 
 impl LcdProcessor {
@@ -228,6 +275,12 @@ impl LcdProcessor {
             drawn: None,
             // Far enough in the past that the first frame is not held back by the rate limit.
             last_render: Instant::from_ticks(0),
+            // Taken as the starting point rather than as a change, so that the step the backlight
+            // comes up at does not slide the overlay in at boot.
+            brightness: backlight::brightness(),
+            slide: 0,
+            // In the past, so the overlay is not held anywhere.
+            hold_until: Instant::from_ticks(0),
         };
 
         processor.render().await;
@@ -325,6 +378,45 @@ impl LcdProcessor {
             return;
         };
         *battery = event.state.0;
+        self.render().await;
+    }
+
+    /// Moves the brightness overlay one frame.
+    ///
+    /// The overlay is driven from here rather than from an event because it has to move on its own
+    /// once the brightness stops changing. Every poll asks [`crate::backlight`] where the
+    /// brightness stands: a value that differs from the one seen last restarts the hold, so a run
+    /// of presses keeps the overlay up and [`BRIGHTNESS_HOLD`] is counted from the last of them.
+    ///
+    /// The slide is stepped one frame per poll towards whichever end the hold asks for, so a
+    /// brightness change caught mid-departure brings the overlay back from where it had got to
+    /// rather than from off screen. What one frame lasts is not set here: a poll that draws waits
+    /// out [`MIN_RENDER_INTERVAL`] and then redraws and flushes the whole screen, which comes to
+    /// about 250ms on hardware, so the number of frames is what the length of the slide is chosen
+    /// with. See [`BRIGHTNESS_SLIDE_FRAMES`].
+    async fn poll(&mut self) {
+        let brightness = backlight::brightness();
+        let now = Instant::now();
+        if brightness != self.brightness {
+            self.brightness = brightness;
+            self.hold_until = now + BRIGHTNESS_HOLD;
+        }
+
+        let target = if now < self.hold_until {
+            BRIGHTNESS_SLIDE_FRAMES
+        } else {
+            0
+        };
+        if self.slide < target {
+            self.slide += 1;
+        } else if self.slide > target {
+            self.slide -= 1;
+        }
+
+        self.status.brightness = (self.slide > 0).then_some(BrightnessOverlay {
+            percent: self.brightness.percent,
+            slide: self.slide,
+        });
         self.render().await;
     }
 

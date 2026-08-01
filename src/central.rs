@@ -26,7 +26,10 @@ mod keyboard_central {
 
     /// ST7789 LCD of the dongle. SPI is SCK P1_13 and MOSI P1_15 with CS P1_14, DC is P1_12 and
     /// reset is P0_29.
-    #[register_processor(event)]
+    ///
+    /// Polled as well as event driven: the brightness overlay is an animation and nothing
+    /// publishes an event per frame.
+    #[register_processor(poll)]
     fn lcd() -> LcdProcessor {
         LcdProcessor::new(p.SPI3, Irqs, p.P1_13, p.P1_15, p.P1_14, p.P1_12, p.P0_29).await
     }
