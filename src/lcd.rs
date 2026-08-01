@@ -1,8 +1,8 @@
 //! ST7789 LCD of the dongle: SPI bus setup and the processor that redraws the panel.
 //!
 //! The panel is a 240x280 ST7789 driven through a SPIM. It is rotated by [`ROTATION`], so the
-//! logical resolution is [`WIDTH`] x [`HEIGHT`] in landscape. `LcdAsyncDisplay` has no partial
-//! update and pushes the whole framebuffer on every flush, so redraws are rate limited by
+//! logical resolution is [`WIDTH`] x [`HEIGHT`] in landscape. [`framebuffer::FrameBuffer`] has no
+//! partial update and pushes the whole framebuffer on every flush, so redraws are rate limited by
 //! [`MIN_RENDER_INTERVAL`].
 //!
 //! This module only decides when to redraw; what is drawn lives in [`crate::status_screen`] and
@@ -10,6 +10,7 @@
 //! not redrawn from an event: it is an animation, so [`LcdProcessor::poll`] steps it and watches
 //! [`crate::backlight::brightness`] for the changes that start it.
 
+mod framebuffer;
 mod spim3_anomaly198;
 
 use core::convert::Infallible;
@@ -26,8 +27,6 @@ use embassy_nrf::spim::{
 use embassy_time::{Delay, Duration, Instant, Timer};
 use embedded_hal::digital::{ErrorType, OutputPin};
 use embedded_hal_bus::spi::ExclusiveDevice;
-use rmk::display::DisplayDriver as _;
-use rmk::display::drivers::lcd_async::LcdAsyncDisplay;
 use rmk::display::lcd_async::Builder;
 use rmk::display::lcd_async::interface::SpiInterface;
 use rmk::display::lcd_async::models::ST7789;
@@ -39,6 +38,7 @@ use rmk::macros::processor;
 use static_cell::StaticCell;
 
 use crate::backlight::{self, Brightness};
+use crate::lcd::framebuffer::FrameBuffer;
 use crate::lcd::spim3_anomaly198::Spim3Anomaly198Interface;
 use crate::status_screen::{self, BRIGHTNESS_SLIDE_FRAMES, BrightnessOverlay, Status};
 
@@ -150,7 +150,7 @@ type Bus = ExclusiveDevice<Spim<'static>, Output<'static>, Delay>;
 type PanelInterface = Spim3Anomaly198Interface<SpiInterface<Bus, PolarityPin>>;
 
 /// Initialized panel together with its framebuffer.
-type Panel = LcdAsyncDisplay<
+type Panel = FrameBuffer<
     PanelInterface,
     ST7789,
     Output<'static>,
@@ -336,7 +336,7 @@ impl LcdProcessor {
             .await
             .ok()?;
 
-        Some(LcdAsyncDisplay::new(panel, Self::frame_buffer()?))
+        Some(FrameBuffer::new(panel, Self::frame_buffer()?))
     }
 
     /// Hands out the framebuffer, once.
