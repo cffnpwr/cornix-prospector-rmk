@@ -32,6 +32,10 @@ dcdc_reg1 = true
 [event.central_connected]
 subs = 2
 
+# 既定の枠は0のため、バックライト輝度キーを受け取る LcdProcessor の分を足す
+[event.action]
+subs = 1
+
 [split]
 connection = "ble"
 

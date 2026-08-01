@@ -1,21 +1,22 @@
-//! ST7789 LCD of the dongle: SPI bus setup, backlight PWM and the processor that redraws it.
+//! ST7789 LCD of the dongle: SPI bus setup and the processor that redraws the panel.
 //!
 //! The panel is a 240x280 ST7789 driven through a SPIM. It is rotated by [`ROTATION`], so the
 //! logical resolution is [`WIDTH`] x [`HEIGHT`] in landscape. `LcdAsyncDisplay` has no partial
 //! update and pushes the whole framebuffer on every flush, so redraws are rate limited by
 //! [`MIN_RENDER_INTERVAL`].
 //!
-//! This module only decides when to redraw; what is drawn lives in [`crate::status_screen`].
+//! This module only decides when to redraw; what is drawn lives in [`crate::status_screen`] and
+//! the backlight belongs to [`crate::backlight`].
 
 mod spim3_anomaly198;
 
 use core::convert::Infallible;
+use core::sync::atomic::{AtomicBool, Ordering};
 
 use embassy_nrf::Peri;
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin as GpioPin};
 use embassy_nrf::interrupt::typelevel::Binding;
 use embassy_nrf::peripherals::SPI3;
-use embassy_nrf::pwm::{DutyCycle, Instance as PwmInstance, Prescaler, SimpleConfig, SimplePwm};
 use embassy_nrf::spim::{
     Config as SpimConfig, Frequency, Instance as SpimInstance,
     InterruptHandler as SpimInterruptHandler, Spim,
@@ -93,23 +94,6 @@ const SPI_FREQUENCY: Frequency = Frequency::M8;
 /// which it would not with the levels the other way round. Flipping this swaps the two levels.
 const DC_INVERTED: bool = false;
 
-/// Whether a Low level lights the backlight.
-///
-/// Confirmed on hardware: driving the pin permanently Low leaves the backlight dark while a
-/// permanent High lights it, so the backlight is active high. Flipping this reverses both the duty
-/// polarity and the level the pin idles at.
-const BACKLIGHT_ACTIVE_LOW: bool = false;
-
-/// `COUNTERTOP` of the backlight PWM, which is also the brightest value accepted by
-/// [`Backlight::set_brightness`].
-const BACKLIGHT_MAX: u16 = 1000;
-
-/// Prescaler of the backlight PWM. `Div16` gives 1MHz, so [`BACKLIGHT_MAX`] makes a 1kHz period.
-const BACKLIGHT_PRESCALER: Prescaler = Prescaler::Div16;
-
-/// Brightness the backlight is set to once the first frame is on the panel.
-const BACKLIGHT_DEFAULT: u16 = BACKLIGHT_MAX;
-
 /// Shortest time between two flushes.
 ///
 /// One flush transfers the whole framebuffer, which at [`SPI_FREQUENCY`] takes about 134ms
@@ -123,6 +107,21 @@ const MIN_RENDER_INTERVAL: Duration = Duration::from_millis(33);
 
 /// Framebuffer of the panel. Too large to build on the stack, so it lives in a static.
 static FRAME_BUFFER: StaticCell<[u8; FRAME_BUFFER_LEN]> = StaticCell::new();
+
+/// Whether the panel has shown its first frame.
+///
+/// Read through [`panel_ready`] by [`crate::backlight`], which owns the backlight and must not
+/// light it before there is something to see, because the panel holds noise after reset. It stays
+/// `false` forever when the panel fails to come up, which is what keeps a dead panel dark.
+///
+/// `Relaxed` is enough: the flag publishes no other data, and both sides do nothing but read and
+/// write this one bit.
+static PANEL_READY: AtomicBool = AtomicBool::new(false);
+
+/// Whether the panel has shown its first frame. See [`PANEL_READY`].
+pub fn panel_ready() -> bool {
+    PANEL_READY.load(Ordering::Relaxed)
+}
 
 /// SPI device of the panel: the SPIM plus its chip select.
 type Bus = ExclusiveDevice<Spim<'static>, Output<'static>, Delay>;
@@ -179,45 +178,6 @@ impl OutputPin for PolarityPin {
     }
 }
 
-/// Backlight of the panel, driven by one PWM channel.
-pub struct Backlight {
-    pwm: SimplePwm<'static>,
-}
-
-impl Backlight {
-    /// Sets the backlight pin up as a PWM output, initially dark.
-    pub fn new<T: PwmInstance>(pwm: Peri<'static, T>, pin: Peri<'static, impl GpioPin>) -> Self {
-        let mut config = SimpleConfig::default();
-        config.prescaler = BACKLIGHT_PRESCALER;
-        config.max_duty = BACKLIGHT_MAX;
-        // Level the pin holds while the PWM generator is off, which has to be the dark one.
-        config.ch0_idle_level = if BACKLIGHT_ACTIVE_LOW {
-            Level::High
-        } else {
-            Level::Low
-        };
-
-        let mut backlight = Self {
-            pwm: SimplePwm::new_1ch(pwm, pin, &config),
-        };
-        backlight.set_brightness(0);
-        backlight
-    }
-
-    /// Sets the brightness, from 0 for dark up to [`BACKLIGHT_MAX`] for the brightest. Larger
-    /// values are clamped.
-    pub fn set_brightness(&mut self, brightness: u16) {
-        let duty = brightness.min(BACKLIGHT_MAX);
-        // With normal polarity the pin is High while the counter is at or above the duty value,
-        // so the duty value is the Low fraction of the period. That is what an active low
-        // backlight wants; an active high one needs the inverted polarity.
-        self.pwm.set_duty(
-            0,
-            DutyCycle::normal(duty).with_inverted(!BACKLIGHT_ACTIVE_LOW),
-        );
-    }
-}
-
 /// Processor that keeps the panel showing the state of the keyboard.
 ///
 /// RMK's own `DisplayProcessor` is not used: its `RenderContext` carries only the BLE status and
@@ -229,8 +189,6 @@ pub struct LcdProcessor {
     /// Panel. `None` when initialization failed, in which case nothing is displayed and the rest
     /// of the firmware keeps running.
     panel: Option<Panel>,
-    /// Backlight of the panel.
-    backlight: Backlight,
     /// State reported last.
     status: Status,
     /// State the panel currently shows.
@@ -240,18 +198,13 @@ pub struct LcdProcessor {
 }
 
 impl LcdProcessor {
-    /// Brings the backlight, the SPI bus and the panel up, then shows the first frame.
+    /// Brings the SPI bus and the panel up, then shows the first frame.
     ///
-    /// The order matters twice. The backlight PWM is set up before the panel is touched, because
-    /// otherwise its pin would be left floating for the roughly 300ms the initialization sequence
-    /// takes. It is set up dark and only lit once the first frame has reached the panel, so the
-    /// noise the panel holds after reset is never shown. When the panel fails to come up it is
-    /// dropped and the backlight stays dark, leaving the rest of the firmware unaffected.
-    #[allow(
-        clippy::too_many_arguments,
-        reason = "the panel needs six pins next to its two peripherals, and grouping them would only move the list elsewhere"
-    )]
-    pub async fn new<P: PwmInstance>(
+    /// [`PANEL_READY`] is raised afterwards, and only when the panel came up, which is what lets
+    /// [`crate::backlight`] light the backlight without ever showing the noise the panel holds
+    /// after reset. When the panel fails to come up it is dropped, the flag stays down and the
+    /// rest of the firmware is unaffected.
+    pub async fn new(
         spim: Peri<'static, SPI3>,
         irq: impl Binding<<SPI3 as SpimInstance>::Interrupt, SpimInterruptHandler<SPI3>> + 'static,
         sck: Peri<'static, impl GpioPin>,
@@ -259,17 +212,11 @@ impl LcdProcessor {
         cs: Peri<'static, impl GpioPin>,
         dc: Peri<'static, impl GpioPin>,
         reset: Peri<'static, impl GpioPin>,
-        pwm: Peri<'static, P>,
-        backlight_pin: Peri<'static, impl GpioPin>,
     ) -> Self {
-        // Built before the panel is touched, so the backlight pin is driven dark rather than left
-        // floating while the initialization sequence runs.
-        let backlight = Backlight::new(pwm, backlight_pin);
         let panel = Self::init_panel(spim, irq, sck, mosi, cs, dc, reset).await;
 
         let mut processor = Self {
             panel,
-            backlight,
             status: Status::new(),
             drawn: None,
             // Far enough in the past that the first frame is not held back by the rate limit.
@@ -278,14 +225,9 @@ impl LcdProcessor {
 
         processor.render().await;
         if processor.panel.is_some() {
-            processor.backlight.set_brightness(BACKLIGHT_DEFAULT);
+            PANEL_READY.store(true, Ordering::Relaxed);
         }
         processor
-    }
-
-    /// Sets the backlight brightness. See [`Backlight::set_brightness`] for the range.
-    pub fn set_brightness(&mut self, brightness: u16) {
-        self.backlight.set_brightness(brightness);
     }
 
     /// Builds the SPI bus and runs the initialization sequence of the panel.
@@ -295,10 +237,6 @@ impl LcdProcessor {
     ///
     /// Returns `None` when the bus, the panel or the framebuffer fails to come up, so that the
     /// caller can give up on the display and keep running.
-    #[allow(
-        clippy::too_many_arguments,
-        reason = "the panel needs six pins next to its SPIM, and grouping them would only move the list elsewhere"
-    )]
     async fn init_panel(
         spim: Peri<'static, SPI3>,
         irq: impl Binding<<SPI3 as SpimInstance>::Interrupt, SpimInterruptHandler<SPI3>> + 'static,
