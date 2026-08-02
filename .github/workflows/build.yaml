@@ -43,4 +43,5 @@ jobs:
             prospector-central.uf2
             cornix-left.uf2
             cornix-right.uf2
+            LICENSES/*
           if-no-files-found: error

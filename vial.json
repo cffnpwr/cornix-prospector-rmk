@@ -57,6 +57,16 @@
       "name": "CLR_PEER",
       "shortName": "Clear\nPeer",
       "title": "Clear split pairing info (hold for 5 seconds)"
+    },
+    {
+      "name": "BL_UP",
+      "shortName": "BL\nUp",
+      "title": "Increase the dongle LCD backlight brightness"
+    },
+    {
+      "name": "BL_DOWN",
+      "shortName": "BL\nDown",
+      "title": "Decrease the dongle LCD backlight brightness"
     }
   ],
   "layouts": {

@@ -176,7 +176,7 @@ impl IndicatorProcessor {
     }
 
     /// Takes in a change of the host connection state.
-    #[allow(
+    #[expect(
         clippy::unused_async,
         reason = "must stay async because #[processor] calls it with await"
     )]
@@ -189,7 +189,7 @@ impl IndicatorProcessor {
     }
 
     /// Takes in a change of the split link connection state.
-    #[allow(
+    #[expect(
         clippy::unused_async,
         reason = "must stay async because #[processor] calls it with await"
     )]
@@ -201,7 +201,7 @@ impl IndicatorProcessor {
     }
 
     /// Takes in a change of the battery level.
-    #[allow(
+    #[expect(
         clippy::unused_async,
         reason = "must stay async because #[processor] calls it with await"
     )]

@@ -58,6 +58,26 @@ Prospector（ドングル）、Cornix LP（左右）の3デバイス構成です
 チャンネルごとの色は0が緑、1が赤、2が青、3が黄、4がシアンです。
 ドングルをUSBでホストに使っている間は、検索中の表示をしません。
 
+## LCD
+
+ドングルはLCD画面にキーボードの状態を表示します。
+
+| 表示位置 | 内容 |
+| --- | --- |
+| 左上 | 有効な接続方式。USBアイコン、またはBLEプロファイル番号付きのBluetoothアイコン |
+| 右上 | 押下中の修飾キー（Control、Option、Shift、Command） |
+| 中央 | 現在のレイヤー |
+| 下 | 左右それぞれのバッテリー残量 |
+
+### LCDの輝度変更
+
+LCD自体の輝度を変更できます。
+輝度の変更はVialで`BL Up`と`BL Down`をキーに割り当てることで可能になります。
+輝度を変更すると、最後にキーを押してから約2秒間レイヤー表示の横に輝度バーが表示されます。
+
+輝度は16段階で起動時は常に最大輝度になります。
+最小輝度に設定するとLCDのバックライトが消灯します。
+
 ## How to build
 
 ### Prerequisites
@@ -135,4 +155,7 @@ ZMKなどSoftDevice前提のファームへ戻すには、ブートローダの�
 
 ## License
 
-[MIT License](./LICENSE)
+このファームウェア自体は[MIT License](./LICENSE)です。
+
+ステータス画面は[`u8g2-fonts`](https://crates.io/crates/u8g2-fonts)経由でInconsolata LGCフォントのビットマップを埋め込んでいます。
+そのライセンスは[`LICENSES/OFL-1.1.txt`](./LICENSES/OFL-1.1.txt)を参照してください。
