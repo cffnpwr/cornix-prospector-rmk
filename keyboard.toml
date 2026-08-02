@@ -103,12 +103,98 @@ matrix_map = """
 (3,0) (3,1) (3,2) (3,3) (3,4) (3,5)              (7,5) (7,4) (7,3) (7,2) (7,1) (7,0)
 """
 
+# キーマップはCornix LP公式ファームウェアの既定キーマップに合わせる
+# エンコーダは[時計回り, 反時計回り]の順で、索引0が左手、1が右手
+
 [[layer]]
 name = "base"
 keys = """
-ESC     Q     W     E     R      T                Y     U      I      O     P          BSPC
-TAB     A     S     D     F      G                H     J      K      L     SEMICOLON  QUOT
-LSHIFT  Z     X     C     V      B    NO    NO    N     M      COMMA  DOT   SLASH      RSHIFT
-LCTRL   LGUI  LALT  NO    SPACE  NO               NO    ENTER  NO     RALT  MENU       RCTRL
+Tab      Q    W    E     R     T                         Y     U     I     O    P         Backspace
+CapsLock A    S    D     F     G                         H     J     K     L    Backslash Enter
+LShift   Z    X    C     V     B     AudioMute MouseBtn3 N     M     Comma Dot  Up        Slash
+LCtrl    LGui LAlt MO(1) MO(3) Space                     Space MO(4) MO(2) Left Down      Right
 """
-encoders = [["PgDn", "PgUp"], ["AudioVolUp", "AudioVolDown"]]
+encoders = [["AudioVolUp", "AudioVolDown"], ["MouseWheelDown", "MouseWheelUp"]]
+
+[[layer]]
+keys = """
+Escape Kc1 Kc2 Kc3 Kc4       Kc5                       Kc6   Kc7   Kc8 Kc9 Kc0 Delete
+No     No  No  No  Semicolon Minus                     Equal Quote No  No  No  No
+No     No  No  No  No        No    AudioMute MouseBtn3 No    No    No  No  No  No
+No     No  No  No  No        No                        No    No    No  No  No  No
+"""
+encoders = [["AudioVolUp", "AudioVolDown"], ["MouseWheelDown", "MouseWheelUp"]]
+
+# レイヤー2とレイヤー3は同一で、どちらもBluetoothチャンネルの切り替えを持つ
+[[layer]]
+keys = """
+No    No No No No No                     No No No No No No
+User0 No No No No No                     No No No No No No
+User1 No No No No No AudioMute MouseBtn3 No No No No No No
+User2 No No No No No                     No No No No No No
+"""
+encoders = [["AudioVolUp", "AudioVolDown"], ["MouseWheelDown", "MouseWheelUp"]]
+
+[[layer]]
+keys = """
+No    No No No No No                     No No No No No No
+User0 No No No No No                     No No No No No No
+User1 No No No No No AudioMute MouseBtn3 No No No No No No
+User2 No No No No No                     No No No No No No
+"""
+encoders = [["AudioVolUp", "AudioVolDown"], ["MouseWheelDown", "MouseWheelUp"]]
+
+# レイヤー4以降はミュートとマウス中ボタンだけを持つ
+[[layer]]
+keys = """
+No No No No No No                     No No No No No No
+No No No No No No                     No No No No No No
+No No No No No No AudioMute MouseBtn3 No No No No No No
+No No No No No No                     No No No No No No
+"""
+encoders = [["AudioVolUp", "AudioVolDown"], ["MouseWheelDown", "MouseWheelUp"]]
+
+[[layer]]
+keys = """
+No No No No No No                     No No No No No No
+No No No No No No                     No No No No No No
+No No No No No No AudioMute MouseBtn3 No No No No No No
+No No No No No No                     No No No No No No
+"""
+encoders = [["AudioVolUp", "AudioVolDown"], ["MouseWheelDown", "MouseWheelUp"]]
+
+[[layer]]
+keys = """
+No No No No No No                     No No No No No No
+No No No No No No                     No No No No No No
+No No No No No No AudioMute MouseBtn3 No No No No No No
+No No No No No No                     No No No No No No
+"""
+encoders = [["AudioVolUp", "AudioVolDown"], ["MouseWheelDown", "MouseWheelUp"]]
+
+[[layer]]
+keys = """
+No No No No No No                     No No No No No No
+No No No No No No                     No No No No No No
+No No No No No No AudioMute MouseBtn3 No No No No No No
+No No No No No No                     No No No No No No
+"""
+encoders = [["AudioVolUp", "AudioVolDown"], ["MouseWheelDown", "MouseWheelUp"]]
+
+[[layer]]
+keys = """
+No No No No No No                     No No No No No No
+No No No No No No                     No No No No No No
+No No No No No No AudioMute MouseBtn3 No No No No No No
+No No No No No No                     No No No No No No
+"""
+encoders = [["AudioVolUp", "AudioVolDown"], ["MouseWheelDown", "MouseWheelUp"]]
+
+[[layer]]
+keys = """
+No No No No No No                     No No No No No No
+No No No No No No                     No No No No No No
+No No No No No No AudioMute MouseBtn3 No No No No No No
+No No No No No No                     No No No No No No
+"""
+encoders = [["AudioVolUp", "AudioVolDown"], ["MouseWheelDown", "MouseWheelUp"]]
