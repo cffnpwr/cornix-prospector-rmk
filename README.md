@@ -6,22 +6,6 @@ A [Prospector](https://github.com/carrefinho/prospector) acts as the BLE central
 
 [日本語版のREADMEはこちら](./README-ja.md)
 
-## Features
-
-- Keymap editing with Vial ([vial.rocks](https://vial.rocks/))
-- Indicator LEDs for the connection state and the battery
-
-## Notes
-
-- RMK is pinned to a commit on its `main` branch rather than a crates.io release
-  - The split link connection parameters that keep the peripheral encoders responsive are not in any release yet
-- Encoders cannot be remapped from Vial because `vial.json` does not declare them
-  - Their actions come from `encoders` in `keyboard.toml`
-- The default keymap has no key for switching Bluetooth channels
-  - The dongle reaches the host over USB, which leaves few occasions to use a BLE channel
-  - Assign them from Vial when needed: `BT0` through `BT4`, `Next BT`, `Prev BT`, `Clear BT`,
-    `Switch Output` and `Clear Peer`
-
 ## Devices
 
 Three devices: a Prospector dongle and the two Cornix LP halves.
@@ -34,7 +18,21 @@ Routing the right half through the dongle removes the extra BLE hop it would oth
 | `cornix-left.uf2` | Cornix LP, left |
 | `cornix-right.uf2` | Cornix LP, right |
 
-## Indicator LED
+## Features
+
+- Keymap editing with Vial ([vial.rocks](https://vial.rocks/))
+- Indicator LEDs on both halves for the connection state and the battery
+- A status screen on the dongle's LCD, with the brightness adjustable from a key
+
+### Keymap
+
+The default keymap matches the one from the official Cornix LP firmware.
+
+Keymaps are edited with Vial.
+`BT0` through `BT4`, `Next BT`, `Prev BT`, `Clear BT`, `Switch Output`, `Clear Peer`, `BL Up` and `BL Down`
+can be assigned to any key from Vial.
+
+### Indicator LED
 
 Each half carries two full-color LEDs (WS2812).
 They are only powered while there is something to show, so they stay dark when nothing is wrong.
@@ -60,7 +58,7 @@ The roles differ between the halves, following the official firmware.
 The color for each channel is 0 green, 1 red, 2 blue, 3 yellow, 4 cyan.
 The searching indication is suppressed while a host is using the dongle over USB.
 
-## LCD
+### LCD
 
 The dongle shows the keyboard state on its LCD panel.
 
@@ -71,7 +69,7 @@ The dongle shows the keyboard state on its LCD panel.
 | Middle | Active layer |
 | Bottom | Battery of each half |
 
-### Changing the LCD brightness
+#### Changing the LCD brightness
 
 The LCD's own brightness can be changed.
 Assign `BL Up` and `BL Down` to keys in Vial to change it.
@@ -80,16 +78,36 @@ Changing the brightness brings up a brightness bar beside the layer for about tw
 The brightness has 16 steps and is always at the brightest on power-on.
 Setting it to the lowest step turns the LCD backlight off.
 
-## How to build
+## How to install
 
-### Prerequisites
+Get the three uf2 images, either by downloading a release or by building them from source, then flash every board.
+
+### Download the prebuilt firmware
+
+Prebuilt uf2 images are attached to every entry on the
+[Releases](https://github.com/cffnpwr/cornix-prospector-rmk/releases) page.
+
+Download `cornix-prospector-rmk_<version>.tar.gz` along with `checksums.txt`, verify the archive, then extract it.
+
+```shell
+sha256sum -c checksums.txt
+tar -xzf cornix-prospector-rmk_<version>.tar.gz
+```
+
+The archive holds the three uf2 images and the license texts they are distributed under.
+
+### Build from source
+
+Build from source when the keymap or the behaviour has to change.
+
+#### Prerequisites
 
 Either of the following.
 
 - [mise](https://mise.jdx.dev/) is available
 - [Rust](https://www.rust-lang.org/) is available
 
-### With mise
+#### With mise
 
 Install the required tools.
 
@@ -103,7 +121,7 @@ Build the uf2 files.
 mise run uf2
 ```
 
-### Without mise
+#### Without mise
 
 Set up the toolchain and the commands the build needs.
 The version, target and components are declared in `rust-toolchain.toml`, so `rustup toolchain install` resolves them.
@@ -137,7 +155,7 @@ cargo hex-to-uf2 --input-path cornix-left.hex --output-path cornix-left.uf2 --fa
 cargo hex-to-uf2 --input-path cornix-right.hex --output-path cornix-right.uf2 --family nrf52840
 ```
 
-## How to flash
+### Flash the firmware
 
 All three devices are flashed from a bootloader that accepts the UF2 format.
 `memory.x` matches a layout that places the application at `0x1000`.

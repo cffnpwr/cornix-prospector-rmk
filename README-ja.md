@@ -5,21 +5,6 @@ JezailFunder製[Cornix LP](https://jezailfunder.jp/products/cornix-lp-keyboard)�
 
 [README.md for English is available here](./README.md)
 
-## Features
-
-- Vial（[vial.rocks](https://vial.rocks/)）でのキーマップ変更に対応
-- インジケーターLEDによる接続状態とバッテリーの表示
-
-## Notes
-
-- RMKはcrates.ioのリリース版ではなく`main`ブランチのコミットで固定しています
-  - peripheralのエンコーダの追従性を保つsplitリンクの接続パラメータが、まだどのリリースにも入っていないためです
-- `vial.json`がエンコーダを宣言していないため、エンコーダはVialから変更できません
-  - 動作は`keyboard.toml`の`encoders`で決まります
-- Bluetoothチャンネルを切り替えるキーは、既定のキーマップに置いていません
-  - ドングルはUSBでホストへつながるため、BLEのチャンネルを使う場面が限られます
-  - 必要な場合は`BT0`から`BT4`、`Next BT`、`Prev BT`、`Clear BT`、`Switch Output`、`Clear Peer`をVialから割り当てられます
-
 ## Devices
 
 Prospector（ドングル）、Cornix LP（左右）の3デバイス構成です。
@@ -32,7 +17,20 @@ Prospector（ドングル）、Cornix LP（左右）の3デバイス構成です
 | `cornix-left.uf2` | Cornix LP 左手 |
 | `cornix-right.uf2` | Cornix LP 右手 |
 
-## Indicator LED
+## Features
+
+- Vial（[vial.rocks](https://vial.rocks/)）でのキーマップ変更に対応
+- 左右のインジケーターLEDによる接続状態とバッテリーの表示
+- ドングルのLCDへのキーボードの状態表示と、キーからの輝度変更
+
+### Keymap
+
+既定のキーマップはCornix LP公式ファームウェアのものに合わせています。
+
+キーマップはVialで変更します。
+`BT0`から`BT4`、`Next BT`、`Prev BT`、`Clear BT`、`Switch Output`、`Clear Peer`、`BL Up`、`BL Down`をVialから任意のキーに割り当てられます。
+
+### Indicator LED
 
 左右それぞれにフルカラーLED（WS2812）が2個あります。
 表示する内容がある間だけ給電するため、問題のない状態では消灯します。
@@ -58,7 +56,7 @@ Prospector（ドングル）、Cornix LP（左右）の3デバイス構成です
 チャンネルごとの色は0が緑、1が赤、2が青、3が黄、4がシアンです。
 ドングルをUSBでホストに使っている間は、検索中の表示をしません。
 
-## LCD
+### LCD
 
 ドングルはLCD画面にキーボードの状態を表示します。
 
@@ -69,7 +67,7 @@ Prospector（ドングル）、Cornix LP（左右）の3デバイス構成です
 | 中央 | 現在のレイヤー |
 | 下 | 左右それぞれのバッテリー残量 |
 
-### LCDの輝度変更
+#### LCDの輝度変更
 
 LCD自体の輝度を変更できます。
 輝度の変更はVialで`BL Up`と`BL Down`をキーに割り当てることで可能になります。
@@ -78,16 +76,35 @@ LCD自体の輝度を変更できます。
 輝度は16段階で起動時は常に最大輝度になります。
 最小輝度に設定するとLCDのバックライトが消灯します。
 
-## How to build
+## How to install
 
-### Prerequisites
+3つのuf2をリリースのダウンロードまたはソースからのビルドで用意し、各基板へ書き込みます。
+
+### Download the prebuilt firmware
+
+ビルド済みのuf2は[Releases](https://github.com/cffnpwr/cornix-prospector-rmk/releases)の各リリースに添付しています。
+
+`cornix-prospector-rmk_<version>.tar.gz`と`checksums.txt`をダウンロードし、アーカイブを検証してから展開します。
+
+```shell
+sha256sum -c checksums.txt
+tar -xzf cornix-prospector-rmk_<version>.tar.gz
+```
+
+アーカイブには3つのuf2と、配布にあたって必要なライセンス文書が入っています。
+
+### Build from source
+
+キーマップや挙動を変更する場合はソースからビルドします。
+
+#### Prerequisites
 
 以下のいずれかを満たす必要があります。
 
 - [mise](https://mise.jdx.dev/)が使用可能
 - [Rust](https://www.rust-lang.org/)が使用可能
 
-### miseを使用する場合
+#### miseを使用する場合
 
 必要なツールをインストールします。
 
@@ -101,7 +118,7 @@ uf2ファイルをビルドします。
 mise run uf2
 ```
 
-### miseを使用しない場合
+#### miseを使用しない場合
 
 ツールチェーンとビルドに必要なコマンドを個別に用意します。
 バージョン・ターゲット・コンポーネントは`rust-toolchain.toml`に記述してあるため、`rustup toolchain install`で解決されます。
@@ -135,27 +152,27 @@ cargo hex-to-uf2 --input-path cornix-left.hex --output-path cornix-left.uf2 --fa
 cargo hex-to-uf2 --input-path cornix-right.hex --output-path cornix-right.uf2 --family nrf52840
 ```
 
-## How to flash
+### Flash the firmware
 
-3台とも、UF2形式に対応したブートローダから書き込みます。
+3台とも、UF2形式に対応したブートローダーから書き込みます。
 `memory.x`はアプリケーションを`0x1000`から配置するレイアウトに合わせています。
 Prospectorに使うXIAO nRF52840は[Adafruit nRF52 Bootloader](https://github.com/adafruit/Adafruit_nRF52_Bootloader)に対応しています。
 
-1. リセットボタンを2回押してブートローダモードに入ると、USBドライブとしてマウントされます
+1. リセットボタンを2回押してブートローダーモードに入ると、USBドライブとしてマウントされます
 2. 対応する`.uf2`をコピーします
 
-マウントされたドライブの`INFO_UF2.TXT`に、ブートローダの種類とバージョンが記載されています。
+マウントされたドライブの`INFO_UF2.TXT`に、ブートローダーの種類とバージョンが記載されています。
 
 ペアリング情報は各基板のストレージにあります。
 役割の入れ替えやドングルの交換のあとで接続しなくなった場合は、`keyboard.toml`の`[storage]`に`clear_storage = true`を設定して3台とも書き込み、設定を戻します。
 Vialで`Clear Peer`を割り当てておけば、5秒長押しで左右のペアリング情報だけを消せます。
 
 RMKは既存のSoftDeviceを自前のBLEスタックで置き換えます。
-ZMKなどSoftDevice前提のファームへ戻すには、ブートローダの再書き込みが必要です。
+ZMKなどSoftDevice前提のファームウェアへ戻すには、ブートローダーの再書き込みが必要です。
 
 ## License
 
 このファームウェア自体は[MIT License](./LICENSE)です。
 
-ステータス画面は[`u8g2-fonts`](https://crates.io/crates/u8g2-fonts)経由でInconsolata LGCフォントのビットマップを埋め込んでいます。
-そのライセンスは[`LICENSES/OFL-1.1.txt`](./LICENSES/OFL-1.1.txt)を参照してください。
+ステータス画面では[`u8g2-fonts`](https://crates.io/crates/u8g2-fonts)経由でInconsolata LGCフォントのビットマップを埋め込んで使用しています。
+フォントのライセンスは[`LICENSES/OFL-1.1.txt`](./LICENSES/OFL-1.1.txt)を参照してください。
