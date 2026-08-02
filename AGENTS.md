@@ -43,7 +43,7 @@ uf2生成と実機への書き込みは、依頼されたときだけ行う。
 - Rustコードのコメント・doc commentは英語で書き、TOML等の設定ファイルのコメントは日本語で書く
 - `README.md`（英語）と`README-ja.md`（日本語）は同じ内容を保ち、一方を変更したらもう一方も同時に更新する
 - キーマップ・マトリクス・BLE等の挙動は`keyboard.toml`で変更する
-- エンコーダは`vial.json`に宣言が無くVialから変更できないため、`keyboard.toml`の`encoders`で定義する
+- エンコーダは`vial.json`で宣言してVialから変更でき、既定の動作は`keyboard.toml`の`encoders`にレイヤーごとに`[時計回り, 反時計回り]`の順で書く
 - コミットメッセージはConventional Commits・gitmoji・日本語の1行で書く（例は`feat: :sparkles: インジケーターLEDを追加する`）
 
 ## 禁止事項・制約
