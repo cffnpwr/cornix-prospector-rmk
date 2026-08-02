@@ -60,6 +60,26 @@ The roles differ between the halves, following the official firmware.
 The color for each channel is 0 green, 1 red, 2 blue, 3 yellow, 4 cyan.
 The searching indication is suppressed while a host is using the dongle over USB.
 
+## LCD
+
+The dongle shows the keyboard state on its LCD panel.
+
+| Area | Shows |
+| --- | --- |
+| Top left | Active transport: a USB icon, or a Bluetooth icon with the BLE profile number |
+| Top right | Modifiers currently held: Control, Option, Shift, Command |
+| Middle | Active layer |
+| Bottom | Battery of each half |
+
+### Changing the LCD brightness
+
+The LCD's own brightness can be changed.
+Assign `BL Up` and `BL Down` to keys in Vial to change it.
+Changing the brightness brings up a brightness bar beside the layer for about two seconds after the last press.
+
+The brightness has 16 steps and is always at the brightest on power-on.
+Setting it to the lowest step turns the LCD backlight off.
+
 ## How to build
 
 ### Prerequisites
@@ -139,4 +159,8 @@ Going back to SoftDevice-based firmware such as ZMK requires reflashing the boot
 
 ## License
 
-[MIT License](./LICENSE)
+[MIT License](./LICENSE) covers this firmware.
+
+The status screen embeds bitmaps of the Inconsolata LGC font through
+[`u8g2-fonts`](https://crates.io/crates/u8g2-fonts); see [`LICENSES/OFL-1.1.txt`](./LICENSES/OFL-1.1.txt) for its
+license.
