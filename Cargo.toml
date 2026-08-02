@@ -1,3 +1,7 @@
+# release-pleaseのCargo.tomlパーサ(@iarna/toml)がTOML v1.1.0の複数行インラインテーブルを解釈できないため、
+# tombiの整形をv1.0.0に固定する
+#:tombi toml-version = "v1.0.0"
+
 [package]
 name = "cornix-prospector-rmk"
 version = "0.0.0"
@@ -17,74 +21,53 @@ path = "src/peripheral_right.rs"
 
 [dependencies]
 bt-hci = { version = "0.9", default-features = false, features = ["defmt"] }
-nrf-mpsl = {
-  git = "https://github.com/alexmoon/nrf-sdc",
-  rev = "abe49d22ebfc85fae134eb082fbfddf752016a55",
-  features = [
-    "critical-section-impl",
-    "defmt",
-    "nrf52840",
-  ]
-}
-nrf-sdc = {
-  git = "https://github.com/alexmoon/nrf-sdc",
-  rev = "abe49d22ebfc85fae134eb082fbfddf752016a55",
-  features = [
-    "central",
-    "defmt",
-    "nrf52840",
-    "peripheral",
-  ]
-}
-rmk = {
-  git = "https://github.com/HaoboGu/rmk",
-  rev = "fe211575308f8d0d1cb2062713f1bc6f5764082c",
-  features = [
-    "adafruit_bl",
-    "async_matrix",
-    "nrf52840_ble",
-    "split",
-    "st7789",
-  ]
-}
+nrf-mpsl = { git = "https://github.com/alexmoon/nrf-sdc", rev = "abe49d22ebfc85fae134eb082fbfddf752016a55", features = [
+  "critical-section-impl",
+  "defmt",
+  "nrf52840",
+] }
+nrf-sdc = { git = "https://github.com/alexmoon/nrf-sdc", rev = "abe49d22ebfc85fae134eb082fbfddf752016a55", features = [
+  "central",
+  "defmt",
+  "nrf52840",
+  "peripheral",
+] }
+rmk = { git = "https://github.com/HaoboGu/rmk", rev = "fe211575308f8d0d1cb2062713f1bc6f5764082c", features = [
+  "adafruit_bl",
+  "async_matrix",
+  "nrf52840_ble",
+  "split",
+  "st7789",
+] }
 
 cortex-m = "0.7.7"
 cortex-m-rt = "0.7.5"
 defmt = "1.0"
 defmt-rtt = "1.0"
-embassy-executor = {
-  version = "0.10",
-  features = [
-    "defmt",
-    "executor-thread",
-    "platform-cortex-m",
-  ]
-}
-embassy-nrf = {
-  version = "0.11",
-  features = [
-    "defmt",
-    "gpiote",
-    "nfc-pins-as-gpio",
-    "nrf52840",
-    "time",
-    "time-driver-rtc1",
-    "unstable-pac",
-  ]
-}
+embassy-executor = { version = "0.10", features = [
+  "defmt",
+  "executor-thread",
+  "platform-cortex-m",
+] }
+embassy-nrf = { version = "0.11", features = [
+  "defmt",
+  "gpiote",
+  "nfc-pins-as-gpio",
+  "nrf52840",
+  "time",
+  "time-driver-rtc1",
+  "unstable-pac",
+] }
 embedded-graphics = "0.8"
 embedded-hal = "1.0"
 embedded-hal-bus = { version = "0.3", features = ["async"] }
 u8g2-fonts = "0.8"
 
-embassy-time = {
-  version = "0.5",
-  features = [
-    "defmt",
-    "defmt-timestamp-uptime",
-    "tick-hz-32_768",
-  ]
-}
+embassy-time = { version = "0.5", features = [
+  "defmt",
+  "defmt-timestamp-uptime",
+  "tick-hz-32_768",
+] }
 panic-probe = { version = "1.0", features = ["print-defmt"] }
 static_cell = "2"
 
