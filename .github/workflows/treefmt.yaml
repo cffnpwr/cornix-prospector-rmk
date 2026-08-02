@@ -6,6 +6,12 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - "**.rs"
+      - "**.toml"
+      - "**.yaml"
+      - "**.yml"
+      - ".github/workflows/treefmt.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

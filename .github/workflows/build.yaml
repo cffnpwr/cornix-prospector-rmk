@@ -6,6 +6,19 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - ".cargo/**"
+      - "src/**"
+      - "LICENSES/**"
+      - "build.rs"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "keyboard.toml"
+      - "memory.x"
+      - "mise.toml"
+      - "rust-toolchain.toml"
+      - "vial.json"
+      - ".github/workflows/build.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
