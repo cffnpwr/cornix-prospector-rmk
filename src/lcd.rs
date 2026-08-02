@@ -1,9 +1,10 @@
 //! ST7789 LCD of the dongle: SPI bus setup and the processor that redraws the panel.
 //!
 //! The panel is a 240x280 ST7789 driven through a SPIM. It is rotated by [`ROTATION`], so the
-//! logical resolution is [`WIDTH`] x [`HEIGHT`] in landscape. [`framebuffer::FrameBuffer`] has no
-//! partial update, so every redraw draws the whole screen and then pushes the whole framebuffer,
-//! which measured on hardware comes to about 57ms together, or 63ms with the brightness overlay up.
+//! logical resolution is [`WIDTH`] x [`HEIGHT`] in landscape. A redraw only clears, draws and sends
+//! the bands of [`crate::status_screen`] that the new state changes, each of which
+//! [`framebuffer::FrameBuffer::flush`] sends as one transfer; the whole framebuffer costs about
+//! 34ms to send on hardware, and a band costs that in proportion to its rows.
 //!
 //! This module only decides when to redraw; what is drawn lives in [`crate::status_screen`] and
 //! the backlight belongs to [`crate::backlight`]. The brightness overlay is the one thing that is
@@ -196,8 +197,8 @@ impl OutputPin for PolarityPin {
 /// because [`render`](Self::render) returns at once while the screen would come out the way it
 /// already is.
 ///
-/// The tick is shorter than a frame takes to reach the panel, which on hardware is about 57ms, so
-/// it never paces the animation: the frames come as fast as the panel takes them. While the overlay
+/// The tick is shorter than a frame that carries the overlay takes to reach the panel, so it never
+/// paces the animation: the frames come as fast as the panel takes them. While the overlay
 /// moves, the ticker of `polling_loop` is therefore always
 /// overdue and `select` takes it ahead of the subscription every time
 /// (`embassy-futures-0.1.2/src/select.rs:60-71`), so the events go unread for the length of the
@@ -370,9 +371,10 @@ impl LcdProcessor {
     ///
     /// The slide is stepped one frame per poll towards whichever end the hold asks for, so a
     /// brightness change caught mid-departure brings the overlay back from where it had got to
-    /// rather than from off screen. What one frame lasts is not set here: a poll that draws redraws
-    /// and flushes the whole screen, which comes to about 63ms on hardware, so the number of frames
-    /// is what the length of the slide is chosen with. See [`BRIGHTNESS_SLIDE_FRAMES`].
+    /// rather than from off screen. What one frame lasts is not set here: a poll that moves the
+    /// overlay redraws and flushes the band of the overlay together with the layer it covers, so
+    /// the number of frames is what the length of the slide is chosen with. See
+    /// [`BRIGHTNESS_SLIDE_FRAMES`].
     async fn poll(&mut self) {
         let brightness = backlight::brightness();
         let now = Instant::now();
@@ -404,17 +406,26 @@ impl LcdProcessor {
     /// Comparing the whole state against what is on the panel is what suppresses the redundant
     /// flushes: modifier and battery events in particular arrive far more often than the picture
     /// changes. That comparison, together with the event channels dropping the states a lagging
-    /// subscriber did not keep up with, is what bounds a burst; drawing a frame at all costs about
-    /// 57ms on hardware, which is its own floor.
+    /// subscriber did not keep up with, is what bounds a burst; what a redraw then costs is set by
+    /// the bands that changed rather than by the size of the panel.
+    ///
+    /// [`status_screen::draw`] is given what the panel already shows, so that it can tell which
+    /// bands those are, and answers with the rows it changed. Those rows go out as they come, one
+    /// transfer each: they are disjoint and ordered from the top down, and there are at most three
+    /// of them because the four bands of the screen only ever fall into that many separate runs.
     async fn render(&mut self) {
         let status = self.status;
         if self.drawn == Some(status) || self.panel.is_none() {
             return;
         }
+        let drawn = self.drawn;
 
         if let Some(panel) = self.panel.as_mut() {
-            status_screen::draw(panel, &status);
-            panel.flush().await;
+            let rows = status_screen::draw(panel, &status, drawn);
+            for band in rows.bands() {
+                let (top, height) = band.row_range();
+                panel.flush(top, height).await;
+            }
         }
 
         self.drawn = Some(status);

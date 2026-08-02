@@ -2,7 +2,8 @@
 //!
 //! One bar per half, each with its level printed above it. Everything the band needs of its own —
 //! its geometry, its thresholds and its colors — lives here; what it shares with the rest of the
-//! screen it takes from the parent module.
+//! screen it takes from the parent module. The rows the band occupies follow from that geometry,
+//! so [`band`] derives them here rather than the parent stating them a second time.
 
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
@@ -11,7 +12,7 @@ use rmk::types::battery::BatteryStatus;
 use u8g2_fonts::FontRenderer;
 use u8g2_fonts::fonts::u8g2_font_inr16_mr;
 
-use super::{HALF_LEFT, HALF_RIGHT, Status, centered_text};
+use super::{Band, HALF_LEFT, HALF_RIGHT, Status, centered_text, font_band, to_u32};
 
 /// Text shown in place of the battery level while it is unknown.
 const UNKNOWN_LABEL: &str = "--%";
@@ -22,6 +23,9 @@ const CENTER_Y: i32 = 214;
 /// Height (px) of a bar. Also fixes the radius of its rounded ends, see [`draw_battery`].
 const BAR_HEIGHT: i32 = 6;
 
+/// Topmost row (px) of a bar, which [`CENTER_Y`] is the middle of.
+const BAR_TOP: i32 = CENTER_Y - BAR_HEIGHT / 2;
+
 /// Distance (px) the bars keep from the left and right edges of the panel.
 ///
 /// The band is inset further than the rest of the screen, which uses `MARGIN`. The value is
@@ -31,12 +35,14 @@ const SIDE_MARGIN: i32 = 20;
 
 /// Gap (px) between the two bars.
 ///
-/// The width of a bar is derived from this rather than being a constant of its own, see
-/// [`draw_batteries`].
+/// The width of a bar is derived from this rather than being a constant of its own, see [`draw`].
 const CENTER_GAP: i32 = 8;
 
 /// Gap (px) between the top of a bar and the level printed above it.
 const TEXT_GAP: i32 = 8;
+
+/// Vertical center (px) of the level printed above a bar.
+const TEXT_CENTER_Y: i32 = BAR_TOP - TEXT_GAP;
 
 /// Lowest level (%) still drawn in the high color.
 ///
@@ -70,17 +76,24 @@ const TRACK_DIM_DEN: u32 = 4;
 /// Font of the levels. Regular rather than bold, 16px tall, 14px per character.
 static LEVEL_FONT: FontRenderer = FontRenderer::new::<u8g2_font_inr16_mr>();
 
+/// Rows the battery band covers.
+///
+/// The bars reach from [`BAR_TOP`] down over [`BAR_HEIGHT`], and above them stands the level, whose
+/// tallest possible glyph is what fixes the top of the band.
+pub(super) fn band() -> Band {
+    font_band(&LEVEL_FONT, TEXT_CENTER_Y).union(Band {
+        top: BAR_TOP,
+        height: BAR_HEIGHT,
+    })
+}
+
 /// Draws the battery of both halves along the bottom of a screen `width` px wide.
 ///
 /// The width of one bar is derived from the panel rather than being a constant, so that changing
 /// [`SIDE_MARGIN`] or [`CENTER_GAP`] cannot break the symmetry of the two halves: each bar takes
 /// half of what is left once both margins and the gap between them are subtracted, the left one
 /// starts at [`SIDE_MARGIN`] and the right one ends the same distance from the right edge.
-pub(super) fn draw_batteries<D: DrawTarget<Color = Rgb565>>(
-    target: &mut D,
-    width: i32,
-    status: &Status,
-) {
+pub(super) fn draw<D: DrawTarget<Color = Rgb565>>(target: &mut D, width: i32, status: &Status) {
     let bar_width = (width - 2 * SIDE_MARGIN - CENTER_GAP) / 2;
 
     draw_battery(
@@ -119,7 +132,7 @@ fn draw_battery<D: DrawTarget<Color = Rgb565>>(
     level: Option<u8>,
 ) {
     let color = level_color(level);
-    let bar = Point::new(x, CENTER_Y - BAR_HEIGHT / 2);
+    let bar = Point::new(x, BAR_TOP);
     let height = to_u32(BAR_HEIGHT);
 
     // The whole bar is drawn first, so that its full length stays readable and the filled part is
@@ -143,7 +156,7 @@ fn draw_battery<D: DrawTarget<Color = Rgb565>>(
         fill_bar(&mut target.clipped(&visible), drawn, color);
     }
 
-    let center = Point::new(x + bar_width / 2, bar.y - TEXT_GAP);
+    let center = Point::new(x + bar_width / 2, TEXT_CENTER_Y);
     match level {
         Some(level) => centered_text(&LEVEL_FONT, target, format_args!("{level}%"), center, color),
         None => centered_text(&LEVEL_FONT, target, UNKNOWN_LABEL, center, color),
@@ -184,9 +197,4 @@ fn level_color(level: Option<u8>) -> Rgb565 {
 fn dimmed(color: Rgb565, num: u32, den: u32) -> Rgb565 {
     let scale = |component: u8| u8::try_from(u32::from(component) * num / den.max(1)).unwrap_or(0);
     Rgb565::new(scale(color.r()), scale(color.g()), scale(color.b()))
-}
-
-/// `value` as a `u32`, with negative values becoming zero.
-fn to_u32(value: i32) -> u32 {
-    u32::try_from(value).unwrap_or(0)
 }

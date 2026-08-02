@@ -6,14 +6,16 @@
 //!
 //! Everything the overlay needs of its own — its geometry, its colors and the distance it travels —
 //! lives here; the level it shows and how far in it is come from the parent module as a
-//! [`BrightnessOverlay`], which is what [`crate::lcd`] steps.
+//! [`BrightnessOverlay`], which is what [`crate::lcd`] steps. The rows the overlay occupies follow
+//! from that geometry, so [`band`] derives them here rather than the parent stating them a second
+//! time.
 
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{PrimitiveStyle, Rectangle, RoundedRectangle};
 
 use super::icons::{SUN_ICON, draw_bitmap};
-use super::{BRIGHTNESS_SLIDE_FRAMES, BrightnessOverlay, to_i32};
+use super::{BRIGHTNESS_SLIDE_FRAMES, Band, BrightnessOverlay, to_i32, to_u32};
 
 /// Horizontal center (px) of the overlay once it is fully in. To the right of the layer, which it
 /// is allowed to cover.
@@ -50,6 +52,36 @@ const TRACK_COLOR: Rgb565 = Rgb565::new(8, 16, 8);
 /// enough not to compete with the bar on it.
 const BACKDROP_COLOR: Rgb565 = Rgb565::new(3, 6, 3);
 
+/// Rows the overlay covers.
+///
+/// These are the rows of the backdrop, which is the outermost part of the overlay: the sun and the
+/// bar are laid out as one block with [`PADDING`] around them and the backdrop is that block grown
+/// by the padding, so both sit inside it whatever their sizes are. The slide only moves the overlay
+/// sideways, so the rows do not depend on how far in it is.
+pub(super) fn band() -> Band {
+    let backdrop = backdrop();
+    Band {
+        top: backdrop.top_left.y,
+        height: to_i32(backdrop.size.height),
+    }
+}
+
+/// The backdrop where the overlay comes to rest, before the slide moves it.
+fn backdrop() -> Rectangle {
+    let block_width = to_i32(SUN_ICON.width).max(BAR_WIDTH);
+    let block_height = to_i32(SUN_ICON.height) + ICON_GAP + BAR_HEIGHT;
+    Rectangle::new(
+        Point::new(
+            CENTER_X - block_width / 2 - PADDING,
+            CENTER_Y - block_height / 2 - PADDING,
+        ),
+        Size::new(
+            to_u32(block_width + 2 * PADDING),
+            to_u32(block_height + 2 * PADDING),
+        ),
+    )
+}
+
 /// Draws the overlay onto a screen `width` px wide.
 ///
 /// The bar is a stadium filled from the bottom up, and it is drawn the way the battery band draws
@@ -59,25 +91,14 @@ const BACKDROP_COLOR: Rgb565 = Rgb565::new(3, 6, 3);
 /// (`embedded-graphics-0.8.1/src/primitives/rounded_rectangle/corner_radii.rs:60-100`) and a fill
 /// shorter than the bar is wide would otherwise come out square cornered and poke past the rounded
 /// cap of the track.
-pub(super) fn draw_brightness<D: DrawTarget<Color = Rgb565>>(
+pub(super) fn draw<D: DrawTarget<Color = Rgb565>>(
     target: &mut D,
     width: i32,
     overlay: BrightnessOverlay,
 ) {
     let icon_width = to_i32(SUN_ICON.width);
     let icon_height = to_i32(SUN_ICON.height);
-    let block_width = icon_width.max(BAR_WIDTH);
-    let block_height = icon_height + ICON_GAP + BAR_HEIGHT;
-    let backdrop = Rectangle::new(
-        Point::new(
-            CENTER_X - block_width / 2 - PADDING,
-            CENTER_Y - block_height / 2 - PADDING,
-        ),
-        Size::new(
-            to_u32(block_width + 2 * PADDING),
-            to_u32(block_height + 2 * PADDING),
-        ),
-    );
+    let backdrop = backdrop();
     // Everything is laid out where the overlay comes to rest and then moved as one, so that the
     // slide cannot pull the parts apart.
     let offset = Point::new(slide_offset(width, backdrop.top_left.x, overlay.slide), 0);
@@ -135,9 +156,4 @@ fn fill_bar<D: DrawTarget<Color = Rgb565>>(target: &mut D, area: Rectangle, colo
     let _drawn = RoundedRectangle::with_equal_corners(area, Size::new(radius, radius))
         .into_styled(PrimitiveStyle::with_fill(color))
         .draw(target);
-}
-
-/// `value` as a `u32`, with negative values becoming zero.
-fn to_u32(value: i32) -> u32 {
-    u32::try_from(value).unwrap_or(0)
 }

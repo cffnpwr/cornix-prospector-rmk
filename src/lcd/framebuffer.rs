@@ -79,23 +79,39 @@ where
         Self { display, buffer }
     }
 
-    /// Sends the whole framebuffer to the panel.
+    /// Sends `height` rows of the framebuffer, starting at row `top`, to the panel.
     ///
-    /// Only a full-frame transfer is implemented, matching what `LcdAsyncDisplay::flush` did
-    /// (`rmk/src/display/drivers/lcd_async.rs:95-100`): partial transfers are out of scope here.
+    /// The band is always the full width of the panel, which is what makes it one transfer: the
+    /// framebuffer is row major, so a range of whole rows is a contiguous slice and goes out in a
+    /// single `show_raw_data` (`lcd-async-0.1.3/src/lib.rs:150-168`), while a narrower rectangle
+    /// would take one transfer per row. The whole frame is the band that covers every row, so
+    /// there is no separate full-frame path.
+    ///
+    /// A band that reaches past the bottom edge is cut off there and an empty band sends nothing,
+    /// which also keeps `show_raw_data` away from the `y + height - 1` it computes for the address
+    /// window.
+    ///
     /// An inherent method rather than `rmk::display::DisplayDriver::flush` because nothing in this
     /// firmware dispatches over that trait; the only two things it would add are `init`, which has
     /// no work to do since the display is already initialized before being wrapped, and an import
     /// of the trait at every call site.
-    pub(super) async fn flush(&mut self) {
+    pub(super) async fn flush(&mut self, top: usize, height: usize) {
+        let top = top.min(H);
+        let height = height.min(H - top);
+        if height == 0 {
+            return;
+        }
+
         #[expect(
             clippy::cast_possible_truncation,
-            reason = "W and H are the panel's own pixel dimensions, always well under u16::MAX"
+            reason = "W and H are the panel's own pixel dimensions, always well under u16::MAX, and top and height are clamped to H"
         )]
-        let (width, height) = (W as u16, H as u16);
+        let (width, first_row, rows) = (W as u16, top as u16, height as u16);
+        let start = top * W * 2;
+        let band = &self.buffer.as_ref()[start..start + height * W * 2];
         let _ = self
             .display
-            .show_raw_data(0, 0, width, height, self.buffer.as_ref())
+            .show_raw_data(0, first_row, width, rows, band)
             .await;
     }
 }
