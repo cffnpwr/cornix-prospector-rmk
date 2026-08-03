@@ -32,7 +32,7 @@ nrf-sdc = { git = "https://github.com/alexmoon/nrf-sdc", rev = "abe49d22ebfc85fa
   "nrf52840",
   "peripheral",
 ] }
-rmk = { git = "https://github.com/HaoboGu/rmk", rev = "fe211575308f8d0d1cb2062713f1bc6f5764082c", features = [
+rmk = { git = "https://github.com/rmk-rs/rmk", rev = "fe211575308f8d0d1cb2062713f1bc6f5764082c", features = [
   "adafruit_bl",
   "async_matrix",
   "nrf52840_ble",

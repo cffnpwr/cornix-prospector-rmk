@@ -1,6 +1,6 @@
 # cornix-prospector-rmk
 
-Unofficial [RMK](https://github.com/HaoboGu/rmk) firmware for the JezailFunder
+Unofficial [RMK](https://github.com/rmk-rs/rmk) firmware for the JezailFunder
 [Cornix LP](https://jezailfunder.jp/products/cornix-lp-keyboard).
 A [Prospector](https://github.com/carrefinho/prospector) acts as the BLE central.
 
