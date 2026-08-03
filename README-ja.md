@@ -1,6 +1,6 @@
 # cornix-prospector-rmk
 
-JezailFunder製[Cornix LP](https://jezailfunder.jp/products/cornix-lp-keyboard)向けの非公式[RMK](https://github.com/HaoboGu/rmk)ファームウェア。
+JezailFunder製[Cornix LP](https://jezailfunder.jp/products/cornix-lp-keyboard)向けの非公式[RMK](https://github.com/rmk-rs/rmk)ファームウェア。
 [Prospector](https://github.com/carrefinho/prospector)をBLE centralにします。
 
 [README.md for English is available here](./README.md)
