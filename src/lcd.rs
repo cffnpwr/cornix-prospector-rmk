@@ -34,8 +34,10 @@ use rmk::display::lcd_async::models::ST7789;
 use rmk::display::lcd_async::options::{ColorInversion, ColorOrder, Orientation, Rotation};
 use rmk::event::{
     ConnectionStatusChangeEvent, LayerChangeEvent, ModifierEvent, PeripheralBatteryEvent,
+    PeripheralConnectedEvent,
 };
 use rmk::macros::processor;
+use rmk::types::battery::BatteryStatus;
 use static_cell::StaticCell;
 
 use crate::backlight::{self, Brightness};
@@ -188,7 +190,7 @@ impl OutputPin for PolarityPin {
 ///
 /// RMK's own `DisplayProcessor` is not used: its `RenderContext` carries only the BLE status and
 /// cannot tell whether reports are going out over USB or over BLE, which this display has to show.
-/// The four events subscribed to here are what [`Status`] is assembled from, and are a subset of
+/// The five events subscribed to here are what [`Status`] is assembled from, and are a subset of
 /// the eleven `DisplayProcessor` takes. **`ActionEvent` must not be added to them**, see the
 /// documentation of [`crate::backlight`].
 ///
@@ -202,7 +204,7 @@ impl OutputPin for PolarityPin {
 /// moves, the ticker of `polling_loop` is therefore always
 /// overdue and `select` takes it ahead of the subscription every time
 /// (`embassy-futures-0.1.2/src/select.rs:60-71`), so the events go unread for the length of the
-/// slide. That costs freshness and nothing else: all four are published with `publish_event`
+/// slide. That costs freshness and nothing else: all five are published with `publish_event`
 /// (`rmk/src/event/mod.rs:200-204`), which never waits and drops the oldest state instead
 /// (`embassy-sync-0.7.2/src/pubsub/mod.rs:352-360`), so no publisher is ever held up and the
 /// newest state of each is still queued once the slide is over. The ticker catches up in the polls
@@ -215,7 +217,7 @@ impl OutputPin for PolarityPin {
 /// reached by implementing `PollingProcessor` by hand and overriding `polling_loop`, leaving
 /// `interval` and `update` behind as members that are never called. A 30Hz tick on a dongle that
 /// runs off USB power is not worth that.
-#[processor(subscribe = [ConnectionStatusChangeEvent, LayerChangeEvent, ModifierEvent, PeripheralBatteryEvent], poll_interval = 33)]
+#[processor(subscribe = [ConnectionStatusChangeEvent, LayerChangeEvent, ModifierEvent, PeripheralBatteryEvent, PeripheralConnectedEvent], poll_interval = 33)]
 pub struct LcdProcessor {
     /// Panel. `None` when initialization failed, in which case nothing is displayed and the rest
     /// of the firmware keeps running.
@@ -359,6 +361,29 @@ impl LcdProcessor {
             return;
         };
         *battery = event.state.0;
+        self.render().await;
+    }
+
+    /// Takes in a change of the link to one half.
+    ///
+    /// A half that is not connected has its battery dropped rather than left at the level it last
+    /// reported: `PeripheralBatteryEvent` only arrives over that link, so nothing else would ever
+    /// clear it and the screen would keep showing a level that is no longer being measured. The
+    /// level comes back once the half reconnects and reports again, which
+    /// [`crate::battery_resend`] makes it do straight away.
+    ///
+    /// A drop is noticed no sooner than the link layer gives up on the half, which takes the ten
+    /// seconds of the supervision timeout (`rmk/src/split/ble/central.rs:269`) plus the 500ms the
+    /// reconnect loop waits before it publishes (same file, `:260`). A half that is switched off
+    /// cleanly disconnects and is noticed at once.
+    async fn on_peripheral_connected_event(&mut self, event: PeripheralConnectedEvent) {
+        if event.connected {
+            return;
+        }
+        let Some(battery) = self.status.batteries.get_mut(event.id) else {
+            return;
+        };
+        *battery = BatteryStatus::Unavailable;
         self.render().await;
     }
 
