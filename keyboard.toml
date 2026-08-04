@@ -37,9 +37,10 @@ subs = 2
 subs = 1
 
 # 既定のchannel_sizeは1で、LCDの描画中に左右が続けてpublishすると古い方が捨てられるため広げる
-# 購読するのは LcdProcessor のみで、既定の枠1に収まる
+# 既定の枠は1で LcdProcessor が使い切るため、HeldKeysProcessor の分を足す
 [event.peripheral_connected]
 channel_size = 4
+subs = 2
 
 [split]
 connection = "ble"
