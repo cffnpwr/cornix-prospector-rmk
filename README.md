@@ -23,6 +23,7 @@ Routing the right half through the dongle removes the extra BLE hop it would oth
 - Keymap editing with Vial ([vial.rocks](https://vial.rocks/))
 - Indicator LEDs on both halves for the connection state and the battery
 - A status screen on the dongle's LCD, with the brightness adjustable from a key
+- Releasing the keys and clearing the battery reading of a half that disconnects
 
 ### Keymap
 
@@ -77,6 +78,17 @@ Changing the brightness brings up a brightness bar beside the layer for about tw
 
 The brightness has 16 steps and is always at the brightest on power-on.
 Setting it to the lowest step turns the LCD backlight off.
+
+### When a half disconnects
+
+When one of the halves loses its link to the dongle, two things happen for that half.
+
+- The keys it was holding are released, so a key held while the link drops does not stay down on the host, and a layer key gives its layer back
+- Its battery reading on the LCD goes back to unavailable
+
+Both wait for the BLE link to give up on the half, which takes upwards of ten seconds
+when it is switched off, its battery runs out or it goes out of range.
+The battery reading comes back once the half reconnects.
 
 ## How to install
 
