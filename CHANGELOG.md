@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.1](https://github.com/cffnpwr/cornix-prospector-rmk/compare/v1.0.0...v1.0.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* :bug: 切断されたキーボードのバッテリー残量表示を消す ([#31](https://github.com/cffnpwr/cornix-prospector-rmk/issues/31)) ([9453190](https://github.com/cffnpwr/cornix-prospector-rmk/commit/9453190acd0993d8971285936d393fea4bd6e8a9))
+* :bug: 切断されたキーボードの押下中のキーを離鍵する ([#32](https://github.com/cffnpwr/cornix-prospector-rmk/issues/32)) ([b62eaf0](https://github.com/cffnpwr/cornix-prospector-rmk/commit/b62eaf0cbd543e45af2481c549da835622c6c3a6))
+* **deps:** :package: update rust crate embedded-graphics to v0.8.2 ([#24](https://github.com/cffnpwr/cornix-prospector-rmk/issues/24)) ([a95fc52](https://github.com/cffnpwr/cornix-prospector-rmk/commit/a95fc520929fc861876c2c11d4eed79a7254681c))
+* **deps:** pin dependencies ([#23](https://github.com/cffnpwr/cornix-prospector-rmk/issues/23)) ([862ea8e](https://github.com/cffnpwr/cornix-prospector-rmk/commit/862ea8ef129ef6df3255332c2eaeb9ec44e4f8ab))
+
+
+### Performance Improvements
+
+* :zap: LCDの描画と転送を帯単位にする ([#22](https://github.com/cffnpwr/cornix-prospector-rmk/issues/22)) ([0b83227](https://github.com/cffnpwr/cornix-prospector-rmk/commit/0b832276c6689a7289fd0277af246eee22f0c35e))
+
 ## 1.0.0 (2026-08-02)
 
 
