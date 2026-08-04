@@ -3,7 +3,7 @@
 ## 概要
 
 JezailFunder Cornix LP向けの非公式RMKファームウェア。
-Prospector（XIAO nRF52840）をBLE centralのドングルとし、Cornix LPの左右半身をperipheralとする3デバイス構成をとる。
+Prospector（XIAO nRF52840）をBLE centralのドングルとし、Cornix LPの左右のキーボードをperipheralとする3デバイス構成をとる。
 
 Rust（edition 2024）・`no_std`・Embassyで書かれ、ターゲットはnRF52840（`thumbv7em-none-eabihf`）。
 3つのバイナリを1つのクレートからビルドする。
@@ -26,7 +26,7 @@ uf2生成と実機への書き込みは、依頼されたときだけ行う。
 ## 主要ファイル
 
 - `src/central.rs`: Prospectorドングル向けで、BLE centralとしてUSBでホストへつなぎLCDに状態を表示する
-- `src/peripheral_left.rs`・`src/peripheral_right.rs`: Cornix LPの左右半身向け
+- `src/peripheral_left.rs`・`src/peripheral_right.rs`: Cornix LPの左手・右手向け
 - `src/lib.rs`: 3バイナリの共有コード
   - `backlight`・`lcd`・`status_screen`はcentral用
   - `battery_resend`・`indicator`・`ws2812`はperipheral用

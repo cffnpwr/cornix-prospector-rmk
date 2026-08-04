@@ -6,6 +6,7 @@ use rmk::macros::rmk_central;
 #[rmk_central]
 mod keyboard_central {
     use cornix_prospector_rmk::backlight::BacklightProcessor;
+    use cornix_prospector_rmk::held_keys::HeldKeysProcessor;
     use cornix_prospector_rmk::lcd::LcdProcessor;
     use embassy_nrf::peripherals::SPI3;
     use embassy_nrf::spim::InterruptHandler as SpimInterruptHandler;
@@ -32,5 +33,11 @@ mod keyboard_central {
     #[register_processor(poll)]
     fn lcd() -> LcdProcessor {
         LcdProcessor::new(p.SPI3, Irqs, p.P1_13, p.P1_15, p.P1_14, p.P1_12, p.P0_29).await
+    }
+
+    /// Releases the keys a half was still holding when its link drops.
+    #[register_processor(event)]
+    fn held_keys() -> HeldKeysProcessor {
+        HeldKeysProcessor::new()
     }
 }

@@ -8,9 +8,9 @@ A [Prospector](https://github.com/carrefinho/prospector) acts as the BLE central
 
 ## Devices
 
-Three devices: a Prospector dongle and the two Cornix LP halves.
-The dongle talks to the host, and both halves connect to the dongle over BLE.
-Routing the right half through the dongle removes the extra BLE hop it would otherwise take through the left half.
+Three devices: a Prospector dongle and the two Cornix LP keyboards.
+The dongle talks to the host, and both keyboards connect to the dongle over BLE.
+Routing the right keyboard through the dongle removes the extra BLE hop it would otherwise take through the left keyboard.
 
 | firmware | Board |
 | --- | --- |
@@ -21,8 +21,9 @@ Routing the right half through the dongle removes the extra BLE hop it would oth
 ## Features
 
 - Keymap editing with Vial ([vial.rocks](https://vial.rocks/))
-- Indicator LEDs on both halves for the connection state and the battery
+- Indicator LEDs on both keyboards for the connection state and the battery
 - A status screen on the dongle's LCD, with the brightness adjustable from a key
+- Releasing the keys and clearing the battery reading of a keyboard that disconnects
 
 ### Keymap
 
@@ -34,11 +35,11 @@ can be assigned to any key from Vial.
 
 ### Indicator LED
 
-Each half carries two full-color LEDs (WS2812).
+Each keyboard carries two full-color LEDs (WS2812).
 They are only powered while there is something to show, so they stay dark when nothing is wrong.
 For the first two seconds after power-on, the inner LED lights red and the outer one green.
 
-The roles differ between the halves, following the official firmware.
+The roles differ between the two keyboards, following the official firmware.
 
 | Unit | Inner | Outer |
 | --- | --- | --- |
@@ -67,7 +68,7 @@ The dongle shows the keyboard state on its LCD panel.
 | Top left | Active transport: a USB icon, or a Bluetooth icon with the BLE profile number |
 | Top right | Modifiers currently held: Control, Option, Shift, Command |
 | Middle | Active layer |
-| Bottom | Battery of each half |
+| Bottom | Battery of each keyboard |
 
 #### Changing the LCD brightness
 
@@ -77,6 +78,17 @@ Changing the brightness brings up a brightness bar beside the layer for about tw
 
 The brightness has 16 steps and is always at the brightest on power-on.
 Setting it to the lowest step turns the LCD backlight off.
+
+### When a keyboard disconnects
+
+When one of the keyboards loses its link to the dongle, two things happen for that keyboard.
+
+- The keys it was holding are released, so a key held while the link drops does not stay down on the host, and a layer key gives its layer back
+- Its battery reading on the LCD goes back to unavailable
+
+Both wait for the BLE link to give up on the keyboard, which takes upwards of ten seconds
+when it is switched off, its battery runs out or it goes out of range.
+The battery reading comes back once the keyboard reconnects.
 
 ## How to install
 
@@ -168,7 +180,7 @@ The XIAO nRF52840 used for the Prospector is supported by the
 `INFO_UF2.TXT` on the mounted drive names the bootloader and its version.
 
 Pairing information lives in each board's storage.
-If the halves stop connecting after roles change or a dongle is swapped, set `clear_storage = true` under `[storage]`
+If the keyboards stop connecting after roles change or a dongle is swapped, set `clear_storage = true` under `[storage]`
 in `keyboard.toml`, flash all three, then revert the setting.
 With `Clear Peer` assigned from Vial, holding it for five seconds clears just the split pairing info.
 
