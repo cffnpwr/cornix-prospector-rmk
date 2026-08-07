@@ -21,18 +21,18 @@ path = "src/peripheral_right.rs"
 
 [dependencies]
 bt-hci = { version = "=0.9.0", default-features = false, features = ["defmt"] }
-nrf-mpsl = { git = "https://github.com/alexmoon/nrf-sdc", rev = "abe49d22ebfc85fae134eb082fbfddf752016a55", features = [
+nrf-mpsl = { git = "https://github.com/alexmoon/nrf-sdc", rev = "f54b6389ffa2750d4d3a4f5435660cb66b47e51a", features = [
   "critical-section-impl",
   "defmt",
   "nrf52840",
 ] }
-nrf-sdc = { git = "https://github.com/alexmoon/nrf-sdc", rev = "abe49d22ebfc85fae134eb082fbfddf752016a55", features = [
+nrf-sdc = { git = "https://github.com/alexmoon/nrf-sdc", rev = "f54b6389ffa2750d4d3a4f5435660cb66b47e51a", features = [
   "central",
   "defmt",
   "nrf52840",
   "peripheral",
 ] }
-rmk = { git = "https://github.com/rmk-rs/rmk", rev = "fe211575308f8d0d1cb2062713f1bc6f5764082c", features = [
+rmk = { git = "https://github.com/rmk-rs/rmk", rev = "65df15775026bad1189139613ee3d338139bec3d", features = [
   "adafruit_bl",
   "async_matrix",
   "nrf52840_ble",
