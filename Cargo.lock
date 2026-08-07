@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "adler2"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
+
+[[package]]
 name = "aes"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -955,6 +961,12 @@ dependencies = [
 
 [[package]]
 name = "embedded-io"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef1a6892d9eef45c8fa6b9e0086428a2cca8491aca8f787c534a3d6d0bcb3ced"
+
+[[package]]
+name = "embedded-io"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edd0f118536f44f5ccd48bcb8b111bdc3de888b58c74639dfb034a357d0f206d"
@@ -1523,6 +1535,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "miniz_oxide"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c"
+dependencies = [
+ "adler2",
+]
+
+[[package]]
 name = "nb"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1550,7 +1571,7 @@ dependencies = [
 [[package]]
 name = "nrf-mpsl"
 version = "0.3.0"
-source = "git+https://github.com/alexmoon/nrf-sdc?rev=abe49d22ebfc85fae134eb082fbfddf752016a55#abe49d22ebfc85fae134eb082fbfddf752016a55"
+source = "git+https://github.com/alexmoon/nrf-sdc?rev=f54b6389ffa2750d4d3a4f5435660cb66b47e51a#f54b6389ffa2750d4d3a4f5435660cb66b47e51a"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -1567,7 +1588,7 @@ dependencies = [
 [[package]]
 name = "nrf-mpsl-sys"
 version = "0.2.1"
-source = "git+https://github.com/alexmoon/nrf-sdc?rev=abe49d22ebfc85fae134eb082fbfddf752016a55#abe49d22ebfc85fae134eb082fbfddf752016a55"
+source = "git+https://github.com/alexmoon/nrf-sdc?rev=f54b6389ffa2750d4d3a4f5435660cb66b47e51a#f54b6389ffa2750d4d3a4f5435660cb66b47e51a"
 dependencies = [
  "bindgen",
  "doxygen-rs",
@@ -1586,7 +1607,7 @@ dependencies = [
 [[package]]
 name = "nrf-sdc"
 version = "0.4.0"
-source = "git+https://github.com/alexmoon/nrf-sdc?rev=abe49d22ebfc85fae134eb082fbfddf752016a55#abe49d22ebfc85fae134eb082fbfddf752016a55"
+source = "git+https://github.com/alexmoon/nrf-sdc?rev=f54b6389ffa2750d4d3a4f5435660cb66b47e51a#f54b6389ffa2750d4d3a4f5435660cb66b47e51a"
 dependencies = [
  "bt-hci",
  "critical-section",
@@ -1603,7 +1624,7 @@ dependencies = [
 [[package]]
 name = "nrf-sdc-sys"
 version = "0.2.1"
-source = "git+https://github.com/alexmoon/nrf-sdc?rev=abe49d22ebfc85fae134eb082fbfddf752016a55#abe49d22ebfc85fae134eb082fbfddf752016a55"
+source = "git+https://github.com/alexmoon/nrf-sdc?rev=f54b6389ffa2750d4d3a4f5435660cb66b47e51a#f54b6389ffa2750d4d3a4f5435660cb66b47e51a"
 dependencies = [
  "bindgen",
  "doxygen-rs",
@@ -1787,6 +1808,8 @@ checksum = "6764c3b5dd454e283a30e6dfe78e9b31096d9e32036b5d1eaac7a6119ccb9a24"
 dependencies = [
  "cobs",
  "defmt 1.1.1",
+ "embedded-io 0.4.0",
+ "embedded-io 0.6.1",
  "heapless 0.7.17",
  "postcard-derive",
  "serde",
@@ -1918,7 +1941,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 [[package]]
 name = "rmk"
 version = "0.8.2"
-source = "git+https://github.com/rmk-rs/rmk?rev=fe211575308f8d0d1cb2062713f1bc6f5764082c#fe211575308f8d0d1cb2062713f1bc6f5764082c"
+source = "git+https://github.com/rmk-rs/rmk?rev=65df15775026bad1189139613ee3d338139bec3d#65df15775026bad1189139613ee3d338139bec3d"
 dependencies = [
  "bt-hci",
  "byteorder",
@@ -1955,13 +1978,15 @@ dependencies = [
 [[package]]
 name = "rmk-config"
 version = "0.6.1"
-source = "git+https://github.com/rmk-rs/rmk?rev=fe211575308f8d0d1cb2062713f1bc6f5764082c#fe211575308f8d0d1cb2062713f1bc6f5764082c"
+source = "git+https://github.com/rmk-rs/rmk?rev=65df15775026bad1189139613ee3d338139bec3d#65df15775026bad1189139613ee3d338139bec3d"
 dependencies = [
  "config",
+ "miniz_oxide",
  "once_cell",
  "paste",
  "pest",
  "pest_derive",
+ "postcard",
  "serde",
  "serde-inline-default",
  "toml",
@@ -1970,7 +1995,7 @@ dependencies = [
 [[package]]
 name = "rmk-macro"
 version = "0.7.1"
-source = "git+https://github.com/rmk-rs/rmk?rev=fe211575308f8d0d1cb2062713f1bc6f5764082c#fe211575308f8d0d1cb2062713f1bc6f5764082c"
+source = "git+https://github.com/rmk-rs/rmk?rev=65df15775026bad1189139613ee3d338139bec3d#65df15775026bad1189139613ee3d338139bec3d"
 dependencies = [
  "cargo_toml",
  "darling 0.23.0",
@@ -1985,7 +2010,7 @@ dependencies = [
 [[package]]
 name = "rmk-types"
 version = "0.2.2"
-source = "git+https://github.com/rmk-rs/rmk?rev=fe211575308f8d0d1cb2062713f1bc6f5764082c#fe211575308f8d0d1cb2062713f1bc6f5764082c"
+source = "git+https://github.com/rmk-rs/rmk?rev=65df15775026bad1189139613ee3d338139bec3d#65df15775026bad1189139613ee3d338139bec3d"
 dependencies = [
  "bitfield-struct",
  "defmt 1.1.1",
@@ -2103,9 +2128,9 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "sequential-storage"
-version = "7.2.0"
+version = "8.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "574e5a379bf43653079b34cb4cf32958404b5f42e0ed5b5adcdff02c2de04d4d"
+checksum = "e750f14f4f6e5a81277c66311713a56106c8df0196df62a634d1fc806556832b"
 dependencies = [
  "defmt 1.1.1",
  "embedded-storage-async",
@@ -2457,7 +2482,7 @@ dependencies = [
 [[package]]
 name = "trouble-host"
 version = "0.7.0"
-source = "git+https://github.com/embassy-rs/trouble?rev=18df47dcf9907eb810ecbf9c613af3694d75f520#18df47dcf9907eb810ecbf9c613af3694d75f520"
+source = "git+https://github.com/embassy-rs/trouble?rev=088e09c451177d5db50cf3e58c68d05512265ba0#088e09c451177d5db50cf3e58c68d05512265ba0"
 dependencies = [
  "aes",
  "bt-hci",
@@ -2482,7 +2507,7 @@ dependencies = [
 [[package]]
 name = "trouble-host-macros"
 version = "0.5.0"
-source = "git+https://github.com/embassy-rs/trouble?rev=18df47dcf9907eb810ecbf9c613af3694d75f520#18df47dcf9907eb810ecbf9c613af3694d75f520"
+source = "git+https://github.com/embassy-rs/trouble?rev=088e09c451177d5db50cf3e58c68d05512265ba0#088e09c451177d5db50cf3e58c68d05512265ba0"
 dependencies = [
  "convert_case 0.8.0",
  "darling 0.20.11",
