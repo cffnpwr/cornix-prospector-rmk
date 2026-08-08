@@ -6,9 +6,7 @@
 //! the way a redraw reaches the panel changes rather than when the screen changes what it shows. It
 //! is also the shape [`crate::lcd`] reads a redraw through.
 
-/// Number of bands the screen is drawn in: the top row, the layer, the battery and the brightness
-/// overlay.
-const BAND_COUNT: usize = 4;
+use super::PART_COUNT;
 
 /// A full-width range of rows of the screen.
 ///
@@ -63,7 +61,7 @@ impl Band {
 /// `crate::lcd`) against a fixed cost of a few hundred microseconds per transfer.
 pub struct DirtyRows {
     /// The bands, of which the first [`Self::len`] are in use.
-    bands: [Band; BAND_COUNT],
+    bands: [Band; PART_COUNT],
     /// How many of [`Self::bands`] are in use.
     len: usize,
 }
@@ -72,7 +70,7 @@ impl DirtyRows {
     /// No rows at all.
     pub(super) const fn new() -> Self {
         Self {
-            bands: [Band::EMPTY; BAND_COUNT],
+            bands: [Band::EMPTY; PART_COUNT],
             len: 0,
         }
     }
