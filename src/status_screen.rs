@@ -22,10 +22,15 @@
 //! is being adjusted and covers the middle of the screen while it is.
 //!
 //! Each of the four knows the rows it occupies as a [`Band`], and is cleared and redrawn on its
-//! own: [`draw`] takes what the panel already shows, redraws only the bands the new [`Status`]
-//! changes and returns their rows for [`crate::lcd`] to send. A band spans the full width of the
-//! screen because the framebuffer is row major, which makes a range of whole rows one contiguous
-//! slice and so one transfer.
+//! own: [`plan`] takes what the panel already shows and works out which bands the new [`Status`]
+//! changes and which rows those come to, and [`draw`] draws that [`Redraw`]. A band spans the full
+//! width of the screen because the framebuffer is row major, which makes a range of whole rows one
+//! contiguous slice and so one transfer.
+//!
+//! The two are separate because [`crate::lcd`] holds only part of the screen at a time and so has
+//! to draw the same redraw once per part, while what the redraw consists of is worked out once.
+//! [`draw`] is therefore free of side effects: calling it again over a different part of the screen
+//! produces the same picture.
 //!
 //! This module holds what the screen shares — the state it is given, the colors and fonts more than
 //! one of them uses, and the layer in the middle — while the parts that stand on their own live
@@ -50,7 +55,8 @@ use u8g2_fonts::fonts::u8g2_font_inb42_mr;
 use u8g2_fonts::types::{FontColor, HorizontalAlignment, VerticalPosition};
 use u8g2_fonts::{Content, FontRenderer};
 
-pub use crate::status_screen::band::{Band, DirtyRows};
+pub use crate::status_screen::band::Band;
+use crate::status_screen::band::DirtyRows;
 
 /// Number of halves whose battery is shown.
 pub const HALF_COUNT: usize = 2;
@@ -155,38 +161,117 @@ impl Default for Status {
     }
 }
 
-/// Draws what `status` changes against `shown` onto `target`, and returns the rows that changed.
+/// A part of the screen that is cleared and redrawn on its own.
 ///
-/// `shown` is what the panel already displays, and `None` when it displays nothing yet. That first
-/// frame draws and returns the whole screen rather than the union of the bands: the rows between
-/// and around the bands belong to none of them, and the panel holds noise after reset until
-/// something is written over them. [`crate::lcd`] starts the framebuffer at zero, which is black,
-/// so one transfer of the whole screen settles those rows for good and every frame after it can
-/// stay inside the bands it changed.
+/// The two orders the parts are taken in are [`TOP_DOWN`] and [`DRAW_ORDER`], and the discriminants
+/// are neither of them: they are what [`Parts`] indexes a part by and nothing else.
+#[derive(Clone, Copy)]
+enum Part {
+    /// The transport and the held modifiers along the top.
+    Header,
+    /// The brightness overlay, which covers the middle while the backlight is being adjusted.
+    Overlay,
+    /// The layer across the middle.
+    Layer,
+    /// The battery of both halves along the bottom.
+    Battery,
+}
+
+/// Number of parts the screen is drawn in.
+const PART_COUNT: usize = 4;
+
+/// The parts, ordered from the top of the screen down.
+///
+/// This is the order rows are merged in, which [`DirtyRows::push`] requires, and the order the
+/// bands are cleared in.
+const TOP_DOWN: [Part; PART_COUNT] = [Part::Header, Part::Overlay, Part::Layer, Part::Battery];
+
+/// The parts, in the order they are drawn.
 ///
 /// The brightness overlay comes last on purpose: it is meant to cover the layer while the backlight
 /// is being adjusted, so it has to be drawn over it rather than under it.
+const DRAW_ORDER: [Part; PART_COUNT] = [Part::Header, Part::Layer, Part::Battery, Part::Overlay];
+
+impl Part {
+    /// Rows the part covers.
+    fn band(self) -> Band {
+        match self {
+            Self::Header => header::band(),
+            Self::Overlay => brightness::band(),
+            Self::Layer => layer_band(),
+            Self::Battery => battery::band(),
+        }
+    }
+}
+
+/// A set of [`Part`]s.
+///
+/// A set rather than one flag per part, so that a part is named wherever it is read or written and
+/// never stands for a position in a list.
+#[derive(Clone, Copy)]
+struct Parts([bool; PART_COUNT]);
+
+impl Parts {
+    /// The empty set.
+    const NONE: Self = Self([false; PART_COUNT]);
+
+    /// Every part.
+    const ALL: Self = Self([true; PART_COUNT]);
+
+    /// Puts `part` in the set when `member`, and takes it out otherwise.
+    fn set(&mut self, part: Part, member: bool) {
+        self.0[part as usize] = member;
+    }
+
+    /// Whether `part` is in the set.
+    fn contains(self, part: Part) -> bool {
+        self.0[part as usize]
+    }
+}
+
+/// What one redraw of the screen consists of.
+///
+/// Produced by [`plan`] and consumed by [`draw`], as many times as [`crate::lcd`] needs to cover
+/// [`rows`](Self::rows) with the part of the screen it holds.
+pub struct Redraw {
+    /// Whether the whole screen is cleared instead of the parts that are redrawn, which is what the
+    /// first frame does.
+    full: bool,
+    /// The parts that are redrawn.
+    parts: Parts,
+    /// The rows the redraw changes.
+    rows: DirtyRows,
+}
+
+impl Redraw {
+    /// The rows the redraw changes, as disjoint bands ordered from the top of the screen down.
+    #[must_use]
+    pub fn rows(&self) -> &[Band] {
+        self.rows.bands()
+    }
+}
+
+/// Works out what `status` changes against `shown` on a screen of `size`.
+///
+/// `shown` is what the panel already displays, and `None` when it displays nothing yet. That first
+/// frame covers the whole screen rather than the union of the bands: the rows between and around
+/// the bands belong to none of them, and the panel holds noise after reset until something is
+/// written over them. Clearing and sending the whole screen settles those rows for good, and every
+/// frame after it can stay inside the bands it changed.
 #[must_use]
-pub fn draw<D: DrawTarget<Color = Rgb565>>(
-    target: &mut D,
-    status: &Status,
-    shown: Option<Status>,
-) -> DirtyRows {
-    let size = target.bounding_box().size;
-    let width = to_i32(size.width);
+pub fn plan(size: Size, status: &Status, shown: Option<Status>) -> Redraw {
     let mut rows = DirtyRows::new();
 
     let Some(shown) = shown else {
-        let _cleared = target.clear(BACKGROUND);
-        header::draw(target, width, status);
-        draw_layer(target, width, status.layer);
-        battery::draw(target, width, status);
-        draw_overlay(target, width, status);
         rows.push(Band {
             top: 0,
             height: to_i32(size.height),
         });
-        return rows;
+        return Redraw {
+            full: true,
+            parts: Parts::ALL,
+            rows,
+        };
     };
 
     let header = status.connection != shown.connection || status.modifiers != shown.modifiers;
@@ -206,35 +291,55 @@ pub fn draw<D: DrawTarget<Color = Rgb565>>(
         overlay = both;
     }
 
-    // Every band is cleared before anything is drawn, for the same reason those two go together: a
-    // clear reaches across the full width, so clearing one band after having drawn another would
-    // erase it. The bands are listed from the top of the screen down, which is the order
-    // [`DirtyRows::push`] merges in.
-    for (dirty, band) in [
-        (header, header::band()),
-        (overlay, brightness::band()),
-        (layer, layer_band()),
-        (battery, battery::band()),
-    ] {
-        if dirty {
-            clear_band(target, width, band);
-            rows.push(band);
+    let mut parts = Parts::NONE;
+    parts.set(Part::Header, header);
+    parts.set(Part::Overlay, overlay);
+    parts.set(Part::Layer, layer);
+    parts.set(Part::Battery, battery);
+
+    for part in TOP_DOWN {
+        if parts.contains(part) {
+            rows.push(part.band());
         }
     }
 
-    if header {
-        header::draw(target, width, status);
+    Redraw {
+        full: false,
+        parts,
+        rows,
     }
-    if layer {
-        draw_layer(target, width, status.layer);
+}
+
+/// Draws `redraw` onto `target`, which shows `status`.
+///
+/// Whatever falls outside the part of the screen `target` holds is dropped by the target itself, so
+/// this draws the same thing whichever part that is and may be called once per part.
+pub fn draw<D: DrawTarget<Color = Rgb565>>(target: &mut D, status: &Status, redraw: &Redraw) {
+    let width = to_i32(target.bounding_box().size.width);
+
+    // Every band is cleared before anything is drawn: a clear reaches across the full width, so
+    // clearing one band after having drawn another would erase it.
+    if redraw.full {
+        let _cleared = target.clear(BACKGROUND);
+    } else {
+        for part in TOP_DOWN {
+            if redraw.parts.contains(part) {
+                clear_band(target, width, part.band());
+            }
+        }
     }
-    if battery {
-        battery::draw(target, width, status);
+
+    for part in DRAW_ORDER {
+        if !redraw.parts.contains(part) {
+            continue;
+        }
+        match part {
+            Part::Header => header::draw(target, width, status),
+            Part::Layer => draw_layer(target, width, status.layer),
+            Part::Battery => battery::draw(target, width, status),
+            Part::Overlay => draw_overlay(target, width, status),
+        }
     }
-    if overlay {
-        draw_overlay(target, width, status);
-    }
-    rows
 }
 
 /// Clears one band across the full width of a screen `width` px wide.

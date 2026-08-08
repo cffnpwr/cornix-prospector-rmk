@@ -26,6 +26,7 @@ use embassy_nrf::spim::{
     InterruptHandler as SpimInterruptHandler, Spim,
 };
 use embassy_time::{Delay, Duration, Instant};
+use embedded_graphics::geometry::OriginDimensions as _;
 use embedded_hal::digital::{ErrorType, OutputPin};
 use embedded_hal_bus::spi::ExclusiveDevice;
 use rmk::display::lcd_async::Builder;
@@ -84,8 +85,22 @@ pub const WIDTH: usize = 280;
 /// Logical height (px) after [`ROTATION`]. Equals [`PANEL_WIDTH`].
 pub const HEIGHT: usize = 240;
 
+/// Rows of the panel the framebuffer holds at once.
+///
+/// A whole screen would be `WIDTH * HEIGHT * 2` = 134,400 bytes, which the 255KiB of RAM cannot
+/// give up without starving the stack, so the framebuffer is a window that
+/// [`framebuffer::FrameBuffer::set_window`] moves and [`LcdProcessor::render`] walks a band with.
+///
+/// The value is a trade of RAM against redraw cost and never of correctness: rows that do not fit
+/// take another pass instead of being lost, and the picture is the same either way. It is set to
+/// the tallest band of [`crate::status_screen`], the brightness overlay, whose backdrop is 144 rows
+/// (`brightness.rs`: 26 for the sun, 6 for the gap, 96 for the bar and 8 of padding at each end),
+/// so that no band on its own takes more than one pass. What still does is the first frame, which
+/// covers all [`HEIGHT`] rows, and any frame whose bands merge into a taller run.
+const BUFFER_ROWS: usize = 144;
+
 /// Framebuffer length (bytes). Rgb565 takes 2 bytes per pixel.
-const FRAME_BUFFER_LEN: usize = WIDTH * HEIGHT * 2;
+const FRAME_BUFFER_LEN: usize = WIDTH * BUFFER_ROWS * 2;
 
 /// SPI clock.
 ///
@@ -113,7 +128,7 @@ const DC_INVERTED: bool = false;
 /// overlay up and the count starts when the adjustment ends.
 const BRIGHTNESS_HOLD: Duration = Duration::from_secs(2);
 
-/// Framebuffer of the panel. Too large to build on the stack, so it lives in a static.
+/// Framebuffer window of the panel. Too large to build on the stack, so it lives in a static.
 static FRAME_BUFFER: StaticCell<[u8; FRAME_BUFFER_LEN]> = StaticCell::new();
 
 /// Whether the panel has shown its first frame.
@@ -145,6 +160,7 @@ type Panel = FrameBuffer<
     &'static mut [u8; FRAME_BUFFER_LEN],
     WIDTH,
     HEIGHT,
+    BUFFER_ROWS,
 >;
 
 /// Output pin whose logical level can be swapped at build time.
@@ -434,10 +450,16 @@ impl LcdProcessor {
     /// subscriber did not keep up with, is what bounds a burst; what a redraw then costs is set by
     /// the bands that changed rather than by the size of the panel.
     ///
-    /// [`status_screen::draw`] is given what the panel already shows, so that it can tell which
-    /// bands those are, and answers with the rows it changed. Those rows go out as they come, one
-    /// transfer each: they are disjoint and ordered from the top down, and there are at most three
-    /// of them because the four bands of the screen only ever fall into that many separate runs.
+    /// [`status_screen::plan`] is given what the panel already shows, so that it can tell which
+    /// bands those are, and answers with the rows they changed. Those rows go out as they come:
+    /// they are disjoint and ordered from the top down, and there are at most three of them because
+    /// the four bands of the screen only ever fall into that many separate runs.
+    ///
+    /// A row is only drawn while the framebuffer stands for it, so a run of rows is walked in
+    /// windows of [`BUFFER_ROWS`] and each window is drawn and sent on its own. A run that fits
+    /// takes one window and so one transfer, which is what [`BUFFER_ROWS`] is chosen for; a taller
+    /// one runs [`status_screen::draw`] once per window, each pass keeping the rows of its window
+    /// and dropping the rest.
     async fn render(&mut self) {
         let status = self.status;
         if self.drawn == Some(status) || self.panel.is_none() {
@@ -446,10 +468,18 @@ impl LcdProcessor {
         let drawn = self.drawn;
 
         if let Some(panel) = self.panel.as_mut() {
-            let rows = status_screen::draw(panel, &status, drawn);
-            for band in rows.bands() {
+            let redraw = status_screen::plan(panel.size(), &status, drawn);
+            for band in redraw.rows() {
                 let (top, height) = band.row_range();
-                panel.flush(top, height).await;
+                let bottom = top + height;
+                let mut window = top;
+                while window < bottom {
+                    let rows = (bottom - window).min(BUFFER_ROWS);
+                    panel.set_window(window);
+                    status_screen::draw(panel, &status, &redraw);
+                    panel.flush(rows).await;
+                    window += rows;
+                }
             }
         }
 
