@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/cffnpwr/cornix-prospector-rmk/compare/v1.0.1...v1.0.2) (2026-08-08)
+
+
+### Performance Improvements
+
+* :zap: LCDフレームバッファをウィンドウ方式にしてRAM占有を減らす ([#44](https://github.com/cffnpwr/cornix-prospector-rmk/issues/44)) ([92acfb5](https://github.com/cffnpwr/cornix-prospector-rmk/commit/92acfb5f2b704fc519df71e91f30d384c36d67df))
+
 ## [1.0.1](https://github.com/cffnpwr/cornix-prospector-rmk/compare/v1.0.0...v1.0.1) (2026-08-04)
 
 
