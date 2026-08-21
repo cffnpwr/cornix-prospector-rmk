@@ -177,6 +177,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "bt-hci"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9670c1c3285fdaa99ade6edf5a3ed47bc14227f49b5e48cc587ef190485eaeb"
+dependencies = [
+ "bt-hci-transport",
+ "btuuid",
+ "defmt 1.1.1",
+ "embassy-sync",
+ "embedded-io 0.7.1",
+ "embedded-io-async 0.7.0",
+ "futures-intrusive",
+ "heapless 0.9.3",
+]
+
+[[package]]
+name = "bt-hci-transport"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ffb9819c69cf88877f5eebc8c5ade0ab50f2bf9475bbb3eb714d66c55b0cb64"
+dependencies = [
+ "defmt 1.1.1",
+ "embedded-io 0.7.1",
+ "embedded-io-async 0.7.0",
+]
+
+[[package]]
 name = "btuuid"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -360,7 +387,7 @@ dependencies = [
 name = "cornix-prospector-rmk"
 version = "1.0.2"
 dependencies = [
- "bt-hci",
+ "bt-hci 0.10.0",
  "cortex-m",
  "cortex-m-rt",
  "defmt 1.1.1",
@@ -1623,7 +1650,7 @@ name = "nrf-sdc"
 version = "0.4.0"
 source = "git+https://github.com/alexmoon/nrf-sdc?rev=f54b6389ffa2750d4d3a4f5435660cb66b47e51a#f54b6389ffa2750d4d3a4f5435660cb66b47e51a"
 dependencies = [
- "bt-hci",
+ "bt-hci 0.9.0",
  "critical-section",
  "defmt 1.1.1",
  "embassy-nrf",
@@ -1957,7 +1984,7 @@ name = "rmk"
 version = "0.8.2"
 source = "git+https://github.com/rmk-rs/rmk?rev=65df15775026bad1189139613ee3d338139bec3d#65df15775026bad1189139613ee3d338139bec3d"
 dependencies = [
- "bt-hci",
+ "bt-hci 0.9.0",
  "byteorder",
  "cortex-m",
  "crc32fast",
@@ -2499,7 +2526,7 @@ version = "0.7.0"
 source = "git+https://github.com/embassy-rs/trouble?rev=088e09c451177d5db50cf3e58c68d05512265ba0#088e09c451177d5db50cf3e58c68d05512265ba0"
 dependencies = [
  "aes",
- "bt-hci",
+ "bt-hci 0.9.0",
  "cmac",
  "defmt 1.1.1",
  "embassy-futures",
