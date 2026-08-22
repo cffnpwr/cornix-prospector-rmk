@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.3](https://github.com/cffnpwr/cornix-prospector-rmk/compare/v1.0.2...v1.0.3) (2026-08-22)
+
+
+### Bug Fixes
+
+* **deps:** :package: update rust crate bt-hci to v0.10.0 ([#63](https://github.com/cffnpwr/cornix-prospector-rmk/issues/63)) ([06fd3fe](https://github.com/cffnpwr/cornix-prospector-rmk/commit/06fd3fe074f1f4e0e30b848301268783f48a1225))
+* **deps:** :package: update rust crate bt-hci to v0.10.1 ([#64](https://github.com/cffnpwr/cornix-prospector-rmk/issues/64)) ([47b6f67](https://github.com/cffnpwr/cornix-prospector-rmk/commit/47b6f676f561d3f70ae0c8ae23b89a20de5c100d))
+* **deps:** :package: update rust crate cortex-m to v0.7.8 ([#46](https://github.com/cffnpwr/cornix-prospector-rmk/issues/46)) ([a6f299e](https://github.com/cffnpwr/cornix-prospector-rmk/commit/a6f299e0e83b8e333ea673d0660d46737cc38933))
+* **deps:** :package: update rust crate cortex-m to v0.7.9 ([#65](https://github.com/cffnpwr/cornix-prospector-rmk/issues/65)) ([8173302](https://github.com/cffnpwr/cornix-prospector-rmk/commit/817330285bc5ab78389b7399bba425311a8fd518))
+
 ## [1.0.2](https://github.com/cffnpwr/cornix-prospector-rmk/compare/v1.0.1...v1.0.2) (2026-08-08)
 
 

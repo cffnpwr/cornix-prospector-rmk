@@ -385,7 +385,7 @@ dependencies = [
 
 [[package]]
 name = "cornix-prospector-rmk"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "bt-hci 0.10.1",
  "cortex-m",
