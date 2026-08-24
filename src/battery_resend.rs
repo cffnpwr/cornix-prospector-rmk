@@ -117,6 +117,7 @@ impl BatteryResendProcessor {
     /// Advances both timers and re-publishes the retained status when either elapses.
     #[expect(
         clippy::unused_async,
+        clippy::unused_async_trait_impl,
         reason = "must stay async because #[processor] calls it with await"
     )]
     async fn poll(&mut self) {
