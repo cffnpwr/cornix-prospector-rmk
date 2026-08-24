@@ -65,7 +65,7 @@ The dongle shows the keyboard state on its LCD panel.
 
 | Area | Shows |
 | --- | --- |
-| Top left | Active transport: a USB icon, or a Bluetooth icon with the BLE profile number |
+| Top left | Active transport: a USB icon, or a Bluetooth icon with the BLE profile number. The preferred transport (toggled with `Switch Output`) follows as a dim icon |
 | Top right | Modifiers currently held: Control, Option, Shift, Command |
 | Middle | Active layer |
 | Bottom | Battery of each keyboard |

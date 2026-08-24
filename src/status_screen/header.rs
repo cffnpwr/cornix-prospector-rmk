@@ -1,7 +1,7 @@
 //! The top row of the status screen.
 //!
-//! The transport that carries the reports on the left and the modifiers being held on the right,
-//! both centered on one line. Everything the row needs of its own — its geometry, its font and its
+//! The transport that carries the reports on the left — followed by the preferred transport in a
+//! dim color — and the modifiers being held on the right, both centered on one line. Everything the row needs of its own — its geometry, its font and its
 //! colors — lives here; what it shares with the rest of the screen it takes from the parent module.
 //! The rows the band occupies follow from that geometry, so [`band`] derives them here rather than
 //! the parent stating them a second time.
@@ -23,7 +23,8 @@ const USB_LABEL: &str = "USB";
 /// Label shown when neither transport carries reports.
 const NO_CONNECTION_LABEL: &str = "---";
 
-/// Color of a modifier that is not held, and of the indication that nothing is connected.
+/// Color of a modifier that is not held, of the indication that nothing is connected, and of the
+/// preferred transport icon.
 const INACTIVE: Rgb565 = Rgb565::new(8, 16, 8);
 
 /// Color of the USB icon.
@@ -61,6 +62,12 @@ const CONN_ICON_OFFSET_Y: i32 = -3;
 
 /// Gap (px) between the transport icon and its label.
 const ICON_LABEL_GAP: i32 = 0;
+
+/// Width (px) of the transport label: every label is three characters of [`LABEL_FONT`].
+const LABEL_WIDTH: i32 = 57;
+
+/// Gap (px) between the transport label and the preferred transport icon.
+const PREFERRED_ICON_GAP: i32 = 8;
 
 /// Width (px) of the slot one modifier symbol is centered in.
 const MODIFIER_SLOT_WIDTH: i32 = 26;
@@ -117,8 +124,12 @@ pub(super) fn draw<D: DrawTarget<Color = Rgb565>>(target: &mut D, width: i32, st
 ///
 /// The icon keeps a fixed color per transport while the label carries the profile color, so the
 /// two together say both which transport and which profile is in use.
+///
+/// The preferred transport — what `Switch Output` toggles — follows the label in [`INACTIVE`],
+/// so the mode stays readable even while readiness alone dictates where the reports go.
 fn draw_connection<D: DrawTarget<Color = Rgb565>>(target: &mut D, connection: ConnectionStatus) {
-    let (icon, icon_color, label_color) = match connection.decide_active() {
+    let active = connection.decide_active();
+    let (icon, icon_color, label_color) = match active {
         Some(ConnectionType::Usb) => (Some(USB_ICON), USB_ICON_COLOR, FOREGROUND),
         Some(ConnectionType::Ble) => {
             let color = PROFILE_COLORS
@@ -142,7 +153,7 @@ fn draw_connection<D: DrawTarget<Color = Rgb565>>(target: &mut D, connection: Co
     }
 
     let position = Point::new(label_x, HEADER_CENTER_Y);
-    match connection.decide_active() {
+    match active {
         Some(ConnectionType::Usb) => text(&LABEL_FONT, target, USB_LABEL, position, label_color),
         Some(ConnectionType::Ble) => text(
             &LABEL_FONT,
@@ -159,6 +170,21 @@ fn draw_connection<D: DrawTarget<Color = Rgb565>>(target: &mut D, connection: Co
             label_color,
         ),
     }
+
+    let preferred_icon = match connection.preferred {
+        ConnectionType::Usb => USB_ICON,
+        ConnectionType::Ble => BT_ICON,
+    };
+    draw_bitmap(
+        target,
+        &preferred_icon,
+        icon_origin(
+            label_x + LABEL_WIDTH + PREFERRED_ICON_GAP,
+            &preferred_icon,
+            CONN_ICON_OFFSET_Y,
+        ),
+        INACTIVE,
+    );
 }
 
 /// Draws the four modifier symbols in the top right corner, lit for the ones being held.
