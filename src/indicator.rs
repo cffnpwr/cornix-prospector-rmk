@@ -178,6 +178,7 @@ impl IndicatorProcessor {
     /// Takes in a change of the host connection state.
     #[expect(
         clippy::unused_async,
+        clippy::unused_async_trait_impl,
         reason = "must stay async because #[processor] calls it with await"
     )]
     async fn on_connection_status_change_event(&mut self, event: ConnectionStatusChangeEvent) {

@@ -263,8 +263,8 @@ where
             if same_bytes {
                 row_slice.fill(color_bytes[0]);
             } else {
-                for pixel in row_slice.chunks_exact_mut(2) {
-                    pixel.copy_from_slice(&color_bytes);
+                for pixel in row_slice.as_chunks_mut::<2>().0 {
+                    *pixel = color_bytes;
                 }
             }
         }
@@ -287,8 +287,8 @@ where
         if color_bytes[0] == color_bytes[1] {
             buffer.fill(color_bytes[0]);
         } else {
-            for pixel in buffer.chunks_exact_mut(2) {
-                pixel.copy_from_slice(&color_bytes);
+            for pixel in buffer.as_chunks_mut::<2>().0 {
+                *pixel = color_bytes;
             }
         }
         Ok(())

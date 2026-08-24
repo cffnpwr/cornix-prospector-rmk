@@ -81,6 +81,7 @@ impl HeldKeysProcessor {
     /// assigned to a half here.
     #[expect(
         clippy::unused_async,
+        clippy::unused_async_trait_impl,
         reason = "must stay async because #[processor] calls it with await"
     )]
     async fn on_keyboard_event(&mut self, event: KeyboardEvent) {
@@ -116,6 +117,7 @@ impl HeldKeysProcessor {
     /// between, so a half that had more keys than that down at once keeps some of them held.
     #[expect(
         clippy::unused_async,
+        clippy::unused_async_trait_impl,
         reason = "must stay async because #[processor] calls it with await"
     )]
     async fn on_peripheral_connected_event(&mut self, event: PeripheralConnectedEvent) {
