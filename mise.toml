@@ -1,7 +1,7 @@
 [tools]
 yamlfmt = "0.21.0"
 tombi = "1.5.0"
-"aqua:numtide/treefmt" = "2.5.0"
+"aqua:numtide/treefmt" = "2.6.0"
 "cargo:flip-link" = "0.1.12"
 "cargo:cargo-binutils" = "0.4.0"
 "cargo:cargo-hex-to-uf2" = "0.1.2"
