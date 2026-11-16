@@ -1,3 +1,6 @@
+[settings]
+lockfile = true
+
 [tools]
 yamlfmt = "0.21.0"
 tombi = "1.5.4"
