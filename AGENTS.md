@@ -12,6 +12,7 @@ Rust（edition 2024）・`no_std`・Embassyで書かれ、ターゲットはnRF5
 
 mise経由で実行する。
 Rustツールチェーンは`rust-toolchain.toml`の指定をmiseが読み込んでインストールする。
+arm-none-eabi-gccも`mise.toml`で管理する。
 
 - ビルド: `mise run build`（`cargo build --release`）
 - lint: `mise run lint`（`cargo clippy --all-features -- -D warnings`）
