@@ -1,5 +1,6 @@
 [settings]
 lockfile = true
+idiomatic_version_file_enable_tools = ["rust"]
 
 [tools]
 yamlfmt = "0.21.0"

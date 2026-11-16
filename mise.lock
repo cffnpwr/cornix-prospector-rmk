@@ -58,6 +58,16 @@ version = "0.1.12"
 backend = "cargo:flip-link"
 specifiers = ["0.1.12"]
 
+[[tools.rust]]
+version = "1.98.1"
+backend = "core:rust"
+specifiers = ["1.98.1"]
+
+[tools.rust.options]
+components = "clippy,llvm-tools,rust-src,rustfmt"
+profile = "minimal"
+targets = "thumbv7em-none-eabihf"
+
 [[tools.tombi]]
 version = "1.5.4"
 backend = "aqua:tombi-toml/tombi"
