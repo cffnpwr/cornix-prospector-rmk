@@ -83,7 +83,8 @@ Setting it to the lowest step turns the LCD backlight off.
 
 When one of the keyboards loses its link to the dongle, two things happen for that keyboard.
 
-- The keys it was holding are released, so a key held while the link drops does not stay down on the host, and a layer key gives its layer back
+- The keys it was holding are released, so a key held while the link drops does not stay down on the host,
+  and a layer key gives its layer back
 - Its battery reading on the LCD goes back to unavailable
 
 Both wait for the BLE link to give up on the keyboard, which takes upwards of ten seconds
