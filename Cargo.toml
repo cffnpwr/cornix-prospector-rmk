@@ -20,7 +20,7 @@ name = "peripheral_right"
 path = "src/peripheral_right.rs"
 
 [dependencies]
-bt-hci = { version = "=0.10.1", default-features = false, features = ["defmt"] }
+bt-hci = { version = "=0.11.0", default-features = false, features = ["defmt"] }
 nrf-mpsl = { version = "=0.4.0", features = [
   "critical-section-impl",
   "defmt",
