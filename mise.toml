@@ -41,8 +41,16 @@ run = [
 ]
 
 [tasks.lint]
+description = "Lint Rust and formatting"
+depends = ["lint:rust", "lint:format"]
+
+[tasks."lint:rust"]
 description = "Run clippy linter"
 run = "cargo clippy --all-features -- -D warnings"
+
+[tasks."lint:format"]
+description = "Check that files are formatted"
+run = "mise run fmt --ci"
 
 [tasks.fmt]
 description = "Run treefmt"
