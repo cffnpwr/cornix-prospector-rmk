@@ -1,4 +1,4 @@
-name: clippy
+name: Lint
 on:
   push:
     branches:
@@ -6,19 +6,6 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - ".cargo/**"
-      - "src/**"
-      - "build.rs"
-      - "Cargo.lock"
-      - "Cargo.toml"
-      - "keyboard.toml"
-      - "memory.x"
-      - "mise.lock"
-      - "mise.toml"
-      - "rust-toolchain.toml"
-      - "vial.json"
-      - ".github/workflows/clippy.yaml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,8 +14,8 @@ concurrency:
 permissions: {}
 
 jobs:
-  clippy:
-    name: Run clippy
+  lint:
+    name: Lint Rust, formatting, Markdown and YAML
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -42,5 +29,5 @@ jobs:
       - name: Install mise
         uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
-      - name: Run clippy
+      - name: Run linters
         run: mise run lint
