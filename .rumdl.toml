@@ -1,0 +1,16 @@
+[global]
+# NOTE: release-pleaseが生成し、連続する空行を含むため対象外にする
+exclude = ["CHANGELOG.md"]
+
+[MD013]
+code-blocks = false
+line-length = 120
+# NOTE: markdownlintと同じく文字数で行の長さを数える（rumdlの既定値は表示幅で数え、全角文字を2文字と数える）
+length-mode = "chars"
+tables = false
+
+[MD024]
+siblings-only = true
+
+[MD033]
+allowed-elements = ["details", "summary"]
