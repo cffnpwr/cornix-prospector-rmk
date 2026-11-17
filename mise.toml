@@ -10,6 +10,14 @@ tombi = "1.5.4"
 "cargo:cargo-binutils" = "0.4.0"
 "cargo:cargo-hex-to-uf2" = "0.1.2"
 
+[tools."http:arm-gnu-toolchain"]
+version = "15.2.rel1"
+
+[tools."http:arm-gnu-toolchain".platforms]
+linux-arm64 = { url = "https://developer.arm.com/-/media/Files/downloads/gnu/{{ version }}/binrel/arm-gnu-toolchain-{{ version }}-aarch64-arm-none-eabi.tar.xz", checksum_url = "https://developer.arm.com/-/media/Files/downloads/gnu/{{ version }}/binrel/arm-gnu-toolchain-{{ version }}-aarch64-arm-none-eabi.tar.xz.sha256asc" }
+linux-x64 = { url = "https://developer.arm.com/-/media/Files/downloads/gnu/{{ version }}/binrel/arm-gnu-toolchain-{{ version }}-x86_64-arm-none-eabi.tar.xz", checksum_url = "https://developer.arm.com/-/media/Files/downloads/gnu/{{ version }}/binrel/arm-gnu-toolchain-{{ version }}-x86_64-arm-none-eabi.tar.xz.sha256asc" }
+macos-arm64 = { url = "https://developer.arm.com/-/media/Files/downloads/gnu/{{ version }}/binrel/arm-gnu-toolchain-{{ version }}-darwin-arm64-arm-none-eabi.tar.xz", checksum_url = "https://developer.arm.com/-/media/Files/downloads/gnu/{{ version }}/binrel/arm-gnu-toolchain-{{ version }}-darwin-arm64-arm-none-eabi.tar.xz.sha256asc" }
+
 [tasks.build]
 description = "Build dongle central and left/right peripheral firmware"
 run = "cargo build --release"

@@ -58,6 +58,31 @@ version = "0.1.12"
 backend = "cargo:flip-link"
 specifiers = ["0.1.12"]
 
+[[tools."http:arm-gnu-toolchain"]]
+version = "15.2.rel1"
+backend = "http:arm-gnu-toolchain"
+specifiers = ["15.2.rel1"]
+
+[tools."http:arm-gnu-toolchain"."platforms.linux-arm64"]
+checksum = "sha256:d061559d814b205ed30c5b7c577c03317ec447ca51cd5a159d26b12a5bbeb20c"
+url = "https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-aarch64-arm-none-eabi.tar.xz"
+
+[tools."http:arm-gnu-toolchain"."platforms.linux-arm64-musl"]
+checksum = "sha256:d061559d814b205ed30c5b7c577c03317ec447ca51cd5a159d26b12a5bbeb20c"
+url = "https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-aarch64-arm-none-eabi.tar.xz"
+
+[tools."http:arm-gnu-toolchain"."platforms.linux-x64"]
+checksum = "sha256:597893282ac8c6ab1a4073977f2362990184599643b4c5ee34870a8215783a16"
+url = "https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz"
+
+[tools."http:arm-gnu-toolchain"."platforms.linux-x64-musl"]
+checksum = "sha256:597893282ac8c6ab1a4073977f2362990184599643b4c5ee34870a8215783a16"
+url = "https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz"
+
+[tools."http:arm-gnu-toolchain"."platforms.macos-arm64"]
+checksum = "sha256:1938a84b7105c192e3fb4fa5e893ba25f425f7ddab40515ae608cd40f68669a8"
+url = "https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-darwin-arm64-arm-none-eabi.tar.xz"
+
 [[tools.rust]]
 version = "1.98.1"
 backend = "core:rust"
