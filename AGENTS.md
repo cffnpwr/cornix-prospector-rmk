@@ -15,7 +15,7 @@ Rustツールチェーンは`rust-toolchain.toml`の指定をmiseが読み込ん
 arm-none-eabi-gccも`mise.toml`で管理する。
 
 - ビルド: `mise run build`（`cargo build --release`）
-- lint: `mise run lint`（`cargo clippy --all-features -- -D warnings`）
+- lint: `mise run lint`（clippy・treefmtによるフォーマットの検査・rumdl・yamllintを実行する）
 - フォーマット: `mise run fmt`（treefmtでrustfmt・yamlfmt・tombiを実行する）
 - uf2生成: `mise run uf2`
 
