@@ -17,6 +17,6 @@ permissions: {}
 
 jobs:
   semantic-pr-title:
-    uses: cffnpwr/actions/.github/workflows/semantic-pr-title.yaml@e211bd1ac958f7b264fc87746847cf9077b76b19 # main
+    uses: cffnpwr/actions/.github/workflows/semantic-pr-title.yaml@2f7f7aa60653dbd8b9fc80399b277798f54627b9 # main
     permissions:
       pull-requests: read
