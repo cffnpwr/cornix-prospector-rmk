@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.1.0](https://github.com/cffnpwr/cornix-prospector-rmk/compare/v1.0.2...v1.1.0) (2026-11-28)
+
+
+### Features
+
+* :sparkles: LCDヘッダーに優先接続方式を暗色アイコンで常時表示する ([#69](https://github.com/cffnpwr/cornix-prospector-rmk/issues/69)) ([78d5714](https://github.com/cffnpwr/cornix-prospector-rmk/commit/78d5714886dc17a2565b6c4a8e7dd800c7ca8af8))
+
+
+### Bug Fixes
+
+* **deps:** :package: rmk・nrf-sdc・nrf-mpslをcrates.ioの公開版に変更する ([#100](https://github.com/cffnpwr/cornix-prospector-rmk/issues/100)) ([c6e4621](https://github.com/cffnpwr/cornix-prospector-rmk/commit/c6e46210f8ac8e922865b36fb958dc64947251d4))
+* **deps:** :package: update rust crate bt-hci to v0.10.0 ([#63](https://github.com/cffnpwr/cornix-prospector-rmk/issues/63)) ([06fd3fe](https://github.com/cffnpwr/cornix-prospector-rmk/commit/06fd3fe074f1f4e0e30b848301268783f48a1225))
+* **deps:** :package: update rust crate bt-hci to v0.10.1 ([#64](https://github.com/cffnpwr/cornix-prospector-rmk/issues/64)) ([47b6f67](https://github.com/cffnpwr/cornix-prospector-rmk/commit/47b6f676f561d3f70ae0c8ae23b89a20de5c100d))
+* **deps:** :package: update rust crate bt-hci to v0.11.0 ([#93](https://github.com/cffnpwr/cornix-prospector-rmk/issues/93)) ([345d740](https://github.com/cffnpwr/cornix-prospector-rmk/commit/345d740e1e1b5cc5ed155f8e9a2223a335aff558))
+* **deps:** :package: update rust crate cortex-m to v0.7.10 ([#98](https://github.com/cffnpwr/cornix-prospector-rmk/issues/98)) ([46b21cb](https://github.com/cffnpwr/cornix-prospector-rmk/commit/46b21cb639cd2c80a948773229da4ac9977d4915))
+* **deps:** :package: update rust crate cortex-m to v0.7.8 ([#46](https://github.com/cffnpwr/cornix-prospector-rmk/issues/46)) ([a6f299e](https://github.com/cffnpwr/cornix-prospector-rmk/commit/a6f299e0e83b8e333ea673d0660d46737cc38933))
+* **deps:** :package: update rust crate cortex-m to v0.7.9 ([#65](https://github.com/cffnpwr/cornix-prospector-rmk/issues/65)) ([8173302](https://github.com/cffnpwr/cornix-prospector-rmk/commit/817330285bc5ab78389b7399bba425311a8fd518))
+* **deps:** :package: update rust crate cortex-m-rt to v0.7.7 ([#89](https://github.com/cffnpwr/cornix-prospector-rmk/issues/89)) ([b48d21e](https://github.com/cffnpwr/cornix-prospector-rmk/commit/b48d21e4c910711788f4dd4f7d3b7de8d7c334c9))
+* **deps:** :package: update rust crate defmt to v1.2.0 ([#96](https://github.com/cffnpwr/cornix-prospector-rmk/issues/96)) ([d2f6dfc](https://github.com/cffnpwr/cornix-prospector-rmk/commit/d2f6dfc78816c192d6c92c0d6e802e7fb1281193))
+* **deps:** :package: update rust crate defmt-rtt to v1.3.1 ([#95](https://github.com/cffnpwr/cornix-prospector-rmk/issues/95)) ([5934e46](https://github.com/cffnpwr/cornix-prospector-rmk/commit/5934e46ffc7d352ec000b0f40cfdf08bd2d3f5fc))
+* **deps:** :package: update rust crate u8g2-fonts to v0.9.1 ([#116](https://github.com/cffnpwr/cornix-prospector-rmk/issues/116)) ([13a1c40](https://github.com/cffnpwr/cornix-prospector-rmk/commit/13a1c40129233b2c1085852ac6a528ac028a07e0))
+
 ## [1.0.2](https://github.com/cffnpwr/cornix-prospector-rmk/compare/v1.0.1...v1.0.2) (2026-08-08)
 
 
