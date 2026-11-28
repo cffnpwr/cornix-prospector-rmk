@@ -4,7 +4,7 @@ idiomatic_version_file_enable_tools = ["rust"]
 
 [tools]
 # miseのpypi backendがyamllintのインストールに使用する
-uv = "0.13.9"
+uv = "0.13.10"
 yamlfmt = "0.21.0"
 tombi = "1.11.3"
 rumdl = "v0.3.6"
